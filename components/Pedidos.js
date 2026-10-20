@@ -172,7 +172,7 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                           <span className="small muted">{cf === 'entregar' ? '¿Marcar como entregado?' : '¿Eliminar este pedido y sus registros?'}</span>
                           <button className={'btn sm ' + (cf === 'borrar' ? 'danger' : 'primary')} disabled={busy} onClick={async () => {
                             setConfirm(null);
-                            if (cf === 'entregar') await run(() => supabase.from('ordenes').update({ estado: 'entregado', entregado: new Date().toISOString() }).eq('id', o.id), 'Pedido entregado. Su informe de producción está en el botón Informe.');
+                            if (cf === 'entregar') await run(() => supabase.from('ordenes').update({ estado: 'entregado', entregado: new Date().toISOString() }).eq('id', o.id), 'Pedido entregado: sus tiempos reales ya cuentan en los tiempos de producción. El informe está en el botón Informe.');
                             else await run(() => supabase.from('ordenes').delete().eq('id', o.id), 'Pedido eliminado.');
                           }}>Sí, {cf === 'entregar' ? 'entregado' : 'eliminar'}</button>
                           <button className="btn sm" onClick={() => setConfirm(null)}>No</button>

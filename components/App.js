@@ -86,7 +86,7 @@ export default function App({ perfil, cliente }) {
     const timers = {};
     const refrescar = (tabla) => { clearTimeout(timers[tabla]); timers[tabla] = setTimeout(() => cargar[tabla](), 250); };
     const canal = supabase.channel('taller')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes' }, () => refrescar('ordenes'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes' }, () => { refrescar('ordenes'); refrescar('tiempos'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registros' }, () => { refrescar('registros'); refrescar('tiempos'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => refrescar('config'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => refrescar('perfiles'));
@@ -147,8 +147,8 @@ export default function App({ perfil, cliente }) {
         )}
       </header>
       <main className="wrap">
-        {!cargando && perfil.rol !== 'operador' && !tiempos.some((t) => +t.minutos > 0) && (
-          <div className="banner">Los tiempos de producción todavía son estimados. Se ajustan solos a medida que el taller registra piezas: mientras más se registre, más exactas serán las fechas y las alertas.</div>
+        {!cargando && perfil.rol !== 'operador' && !A.entregados && (
+          <div className="banner">Los tiempos de producción todavía son estimados. Se vuelven reales cuando se entregue el primer pedido con piezas registradas: los tiempos son el resultado de cada pedido entregado.</div>
         )}
         {cargando ? <div className="empty">Cargando el taller…</div> : (
           <>

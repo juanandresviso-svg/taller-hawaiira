@@ -152,9 +152,9 @@ Cada vez que salga material del almacén para un pedido (tela, hilo, etiquetas, 
 
 Para que los costos sean confiables: precios de materiales al día, recetas completas, costo por hora real y salidas de material registradas el mismo día.
 
-### Tiempos que se aprenden solos
+### Tiempos de producción: un resultado, no un dato
 
-Los tiempos por pieza no hay que cargarlos al principio. Un producto nuevo arranca con un estimado (el promedio de los productos que ya existen) y la app lo corrige sola con cada pedido: compara lo que tardó el taller de verdad con las producciones anteriores y ajusta el tiempo que usa para planificar. En **Ajustes → Tiempos de producción** se ve, para cada producto y etapa, el tiempo en uso, el real medido y de cuántos pedidos sale.
+Los minutos por pieza no se escriben en ningún lado. Son el resultado de los pedidos **entregados**: cuando un pedido se marca como entregado, los tiempos reales medidos en sus registros entran al promedio de ese producto (últimos 6 pedidos entregados, sin las mediciones extremas) y la app planifica con ellos. Un producto nuevo usa un estimado solo hasta que se entrega su primer pedido. En **Ajustes → Tiempos de producción** se ve cada tiempo, de cuántos pedidos sale y cuál fue el último.
 
 ### Informe de producción
 

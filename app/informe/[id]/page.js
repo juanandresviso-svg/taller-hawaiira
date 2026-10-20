@@ -54,7 +54,7 @@ export default async function Informe({ params }) {
   // Promedio de producciones anteriores del mismo producto (min por pieza), por etapa
   const anteriores = (s) => {
     const campo = Object.entries(CAMPOS_DECO).find(([, d]) => d.etapa === s);
-    const filas = (tiempos || []).filter((t) => t.orden_id !== o.id && t.etapa === s && +t.minutos > 0 && +t.piezas_med >= 10);
+    const filas = (tiempos || []).filter((t) => t.orden_id !== o.id && t.estado === 'entregado' && t.etapa === s && +t.minutos > 0 && +t.piezas_med >= 10);
     let lista;
     if (['corte', 'costura', 'empaque'].includes(s)) lista = filas.filter((t) => t.producto === o.producto).map((t) => ({ v: t.minutos / t.piezas_med, p: +t.piezas_med }));
     else if (campo) { const u = campo[1].unidades(o.deco || {}); lista = filas.filter((t) => campo[1].tipo.includes((t.deco || {}).tipo)).map((t) => ({ v: (t.minutos / (t.piezas_med * campo[1].unidades(t.deco || {}))) * u, p: +t.piezas_med })); }
@@ -115,7 +115,7 @@ export default async function Informe({ params }) {
 
         <h3 className="inf-h">Tiempos por etapa (minutos por pieza)</h3>
         <table className="cot-t">
-          <thead><tr><th>Etapa</th><th className="r">Piezas</th><th className="r">Real</th><th className="r">Planificado</th><th className="r">Prod. anteriores</th><th className="r">vs. anteriores</th><th>Quién · cuándo</th></tr></thead>
+          <thead><tr><th>Etapa</th><th className="r">Piezas</th><th className="r">Real</th><th className="r">Planificado</th><th className="r">Pedidos anteriores</th><th className="r">vs. anteriores</th><th>Quién · cuándo</th></tr></thead>
           <tbody>
             {etapas.map((e) => (
               <tr key={e.s}>
