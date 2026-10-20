@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { siteUrl } from '@/lib/sitio';
 
-const ROLES = ['direccion', 'jefa', 'admin', 'compras', 'diseno', 'operador'];
+const ROLES = ['direccion', 'jefa', 'admin', 'compras', 'diseno', 'ventas', 'operador'];
 const ESTACIONES = ['', 'preprensa', 'corte', 'serigrafia', 'costura', 'dtf'];
 
 // Invita a un usuario nuevo (solo Dirección). Supabase envía el correo desde el Gmail del taller (SMTP).

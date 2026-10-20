@@ -7,7 +7,7 @@ const EST_ROL = { operador: 'costura', diseno: 'preprensa' };
 const VENCE = [['7', '7 días'], ['30', '30 días'], ['90', '90 días'], ['', 'No vence']];
 // Juego de enlaces: uno por rol y uno por cada estación de producción
 const JUEGO = [
-  { rol: 'jefa' }, { rol: 'admin' }, { rol: 'compras' }, { rol: 'diseno', estacion: 'preprensa' },
+  { rol: 'jefa' }, { rol: 'admin' }, { rol: 'ventas' }, { rol: 'compras' }, { rol: 'diseno', estacion: 'preprensa' },
   ...['corte', 'costura', 'serigrafia', 'dtf', 'bordado'].map((e) => ({ rol: 'operador', estacion: e })),
 ];
 

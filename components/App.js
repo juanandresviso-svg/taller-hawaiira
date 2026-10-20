@@ -17,9 +17,11 @@ import Costos from './Costos';
 import Clientes from './Clientes';
 import Materiales from './Materiales';
 import { crearCostos, COSTO_ROLES, MATERIAL_ROLES } from '@/lib/costos';
+import Solicitudes, { SOLICITUD_ROLES } from './Solicitudes';
 
 const TABS = {
   tablero: 'Tablero',
+  solicitudes: 'Solicitudes',
   pedidos: 'Pedidos',
   clientes: 'Clientes',
   taller: 'Mi trabajo',
@@ -40,9 +42,10 @@ const DRIVE_MSJ = {
 
 function tabsPara(rol) {
   if (rol === 'operador') return ['taller'];
-  if (rol === 'direccion') return ['tablero', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes', 'usuarios'];
-  if (rol === 'jefa') return ['tablero', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes'];
-  if (rol === 'admin') return ['tablero', 'pedidos', 'clientes', 'taller', 'costos'];
+  if (rol === 'direccion') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes', 'usuarios'];
+  if (rol === 'jefa') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes'];
+  if (rol === 'admin') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos'];
+  if (rol === 'ventas') return ['solicitudes', 'tablero', 'pedidos', 'clientes'];
   if (rol === 'compras') return ['tablero', 'pedidos', 'taller', 'materiales'];
   return ['tablero', 'pedidos', 'taller'];
 }
@@ -65,7 +68,10 @@ export default function App({ perfil, cliente }) {
   const [hitos, setHitos] = useState([]);
   const [documentos, setDocumentos] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [cotizarSol, setCotizarSol] = useState(null); // solicitud que se va a cotizar (abre Costos → Cotizaciones)
   const veMateriales = MATERIAL_ROLES.includes(perfil.rol), veCostos = COSTO_ROLES.includes(perfil.rol);
+  const veSolicitudes = SOLICITUD_ROLES.includes(perfil.rol), veCotizaciones = veCostos || perfil.rol === 'ventas';
   const [live, setLive] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState(null);
@@ -102,10 +108,16 @@ export default function App({ perfil, cliente }) {
     } : {}),
     ...(veCostos ? {
       costos: async () => { const { data } = await supabase.from('costos_config').select('data').eq('id', 1).single(); setCostosCfg(data?.data || null); },
-      cotizaciones: async () => { const { data } = await supabase.from('cotizaciones').select('*').order('creado', { ascending: false }); setCotizaciones(data || []); },
       costosPedido: async () => { const { data } = await supabase.from('costos_pedido').select('*').order('fecha', { ascending: false }); setCostosPedido(data || []); },
     } : {}),
-  }), [supabase, veMateriales, veCostos]);
+    ...(veCotizaciones ? {
+      cotizaciones: async () => { const { data } = await supabase.from(veCostos ? 'cotizaciones' : 'v_cotizaciones_ventas').select('*').order('creado', { ascending: false }); setCotizaciones(data || []); },
+    } : {}),
+    // Solicitudes de los clientes (si aún no se corrió la migración 11, queda vacío)
+    ...(veSolicitudes ? {
+      solicitudes: async () => { const { data } = await supabase.from('solicitudes').select('*').order('creado', { ascending: false }); setSolicitudes(data || []); },
+    } : {}),
+  }), [supabase, veMateriales, veCostos, veCotizaciones, veSolicitudes]);
 
   useEffect(() => {
     try {
@@ -133,8 +145,9 @@ export default function App({ perfil, cliente }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'consumos' }, () => refrescar('consumos'));
     if (veCostos) canal
       .on('postgres_changes', { event: '*', schema: 'public', table: 'costos_config' }, () => refrescar('costos'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cotizaciones' }, () => refrescar('cotizaciones'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'costos_pedido' }, () => refrescar('costosPedido'));
+    if (veCotizaciones) canal.on('postgres_changes', { event: '*', schema: 'public', table: 'cotizaciones' }, () => refrescar('cotizaciones'));
+    if (veSolicitudes) canal.on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, () => { refrescar('solicitudes'); if (!veCostos) refrescar('cotizaciones'); });
     canal.subscribe((s) => setLive(s === 'SUBSCRIBED'));
     // Al volver a la app después de un rato, refresca todo
     const vis = () => { if (document.visibilityState === 'visible') Object.values(cargar).forEach((f) => f()); };
@@ -152,7 +165,7 @@ export default function App({ perfil, cliente }) {
     setTour(false);
     try { localStorage.setItem('tutorial:' + perfil.id, '1'); } catch {}
   }, [perfil.id]);
-  const pasos = useMemo(() => pasosTutorial(perfil), [perfil]);
+  const pasos = useMemo(() => pasosTutorial(perfil).filter((x) => !x.tab || permitidas.includes(x.tab)), [perfil, permitidas]);
 
   // Notificaciones: este dispositivo queda a nombre de quien inició sesión, y se revisan novedades al abrir
   useEffect(() => {
@@ -175,7 +188,8 @@ export default function App({ perfil, cliente }) {
 
   const cambiarTab = (t) => { setTab(t); try { localStorage.setItem('tab', t); } catch {} window.scrollTo(0, 0); };
   const K = useMemo(() => (veCostos ? crearCostos({ M, cc: costosCfg, materiales }) : null), [veCostos, M, costosCfg, materiales]);
-  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, costosPedido, hitos, documentos, clientes, veMateriales, veCostos, avisar, recargar: cargar };
+  const cotizarSolicitud = useCallback((s) => { setCotizarSol(s); setTab('costos'); try { localStorage.setItem('costos:vista', 'cotizaciones'); } catch {} window.scrollTo(0, 0); }, []);
+  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, costosPedido, hitos, documentos, clientes, solicitudes, veMateriales, veCostos, avisar, recargar: cargar, cotizarSolicitud, cotizarSol, limpiarCotizar: () => setCotizarSol(null) };
 
   return (
     <>
@@ -214,6 +228,7 @@ export default function App({ perfil, cliente }) {
         {cargando ? <div className="empty">Cargando el taller…</div> : (
           <>
             {tab === 'tablero' && <Tablero {...ctx} />}
+            {tab === 'solicitudes' && <Solicitudes {...ctx} />}
             {tab === 'pedidos' && <Pedidos {...ctx} />}
             {tab === 'clientes' && <Clientes {...ctx} />}
             {tab === 'taller' && <MiTrabajo {...ctx} />}

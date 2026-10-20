@@ -404,3 +404,11 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); 
 table tfoot th { border-top: 2px solid var(--line); text-align: left; }
 table tfoot th.r { text-align: right; }
 .lineas td input[id^="ms-"] { width: 80px; }
+
+/* Solicitudes del cliente */
+.sol-cot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: var(--info-soft); }
+.sol-cot .btn { margin-left: auto; }
+.sol-resumen { margin: 0 0 12px; padding: 8px 10px; border-left: 3px solid var(--info); background: var(--info-soft); border-radius: 0 8px 8px 0; white-space: pre-wrap; }
+.sol-opcion { text-align: left; font: 14px var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.sol-opcion:hover { border-color: var(--ink); }
+.op.sol .flags { margin-top: 10px; }

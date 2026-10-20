@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usd, usd0 } from '@/lib/costos';
 import { DECO_NAME, fd, parseDay, isoDay, nf, pct, ordenADb } from '@/lib/motor';
 import { decoTexto } from './ui';
@@ -8,6 +8,7 @@ import OCLector from './OCLector';
 import { codigoProducto, numeroSiguiente, OBSERVACIONES_BASE, PAGO_BASE } from '@/lib/formatoCotizacion';
 import { evaluarPasos, claveHitoCot, puedeMarcar, TOTAL_PASOS } from '@/lib/proceso';
 import { revisarNovedades } from '@/lib/avisos';
+import { CANALES } from './Solicitudes';
 
 const ESTADO = { borrador: ['gris', 'Borrador'], enviada: ['listo', 'Enviada'], aprobada: ['verde', 'Aprobada'], rechazada: ['rojo', 'Rechazada'] };
 const redondear = (v) => Math.ceil(v * 20) / 20; // a 0,05 US$
@@ -39,7 +40,7 @@ function PasosCot({ c, M, hitos, perfil, supabase, avisar, recargar }) {
   );
 }
 
-export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaciones, documentos = [], hitos = [], clientes = [], avisar, recargar }) {
+export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaciones, documentos = [], hitos = [], clientes = [], solicitudes = [], cotizarSol = null, limpiarCotizar, avisar, recargar }) {
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -49,6 +50,9 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
   const [leerOC, setLeerOC] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [nuevoProd, setNuevoProd] = useState(null);
+  const [elegirSol, setElegirSol] = useState(false);
+  const porCotizar = solicitudes.filter((s) => ['nueva', 'revision'].includes(s.estado));
+  const solDe = (id) => solicitudes.find((s) => s.id === id);
   const primerProd = Object.keys(M.cfg.productos)[0];
 
   const calc = (it) => {
@@ -60,12 +64,30 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
   };
   const set = (fn) => setDraft((d) => { const n = structuredClone(d); fn(n); return n; });
 
-  function nueva() {
-    setErr('');
+  // Nueva cotización: vacía (solo Dirección) o armada con los datos de la solicitud del cliente
+  function nueva(sol = null) {
+    setErr(''); setElegirSol(false);
     const E = K.C.empresa || {};
-    setDraft({ numero: numeroSiguiente(cotizaciones.map((c) => c.numero), E.proximaCotizacion), cliente: '', contacto: '', rif: '', direccion: '', telefono: '', fecha_entrega: '', notas: E.observaciones || OBSERVACIONES_BASE, metodo_pago: E.metodoPago || PAGO_BASE, items: [itemVacio(primerProd, M.cfg.productos)] });
+    const cl = sol && (clientes.find((x) => x.id === sol.cliente_id) || clientes.find((x) => x.nombre === sol.cliente));
+    const items = sol && (sol.items || []).length
+      ? sol.items.map((it) => { const prod = M.cfg.productos[it.producto] ? it.producto : primerProd; return { ...itemVacio(prod, M.cfg.productos), descripcion: it.descripcion || '', cantidad: it.cantidad || '', tallas: it.tallas || '', ...(it.deco ? { deco: { ...itemVacio(prod, M.cfg.productos).deco, ...it.deco } } : {}) }; })
+      : [itemVacio(primerProd, M.cfg.productos)];
+    setDraft({
+      numero: numeroSiguiente(cotizaciones.map((c) => c.numero), E.proximaCotizacion),
+      cliente: sol ? sol.cliente : '', contacto: sol ? sol.contacto || '' : '', rif: (cl && cl.rif) || '', direccion: (cl && cl.direccion) || '', telefono: (sol && sol.telefono) || (cl && cl.telefono) || '',
+      fecha_entrega: (sol && sol.fecha_deseada) || '', notas: E.observaciones || OBSERVACIONES_BASE, metodo_pago: E.metodoPago || PAGO_BASE, items,
+      solicitud_id: sol ? sol.id : null,
+    });
     window.scrollTo(0, 0);
   }
+  // Viene de Solicitudes → "Cotizar"
+  useEffect(() => {
+    if (!cotizarSol) return;
+    nueva(cotizarSol);
+    if (cotizarSol.estado === 'nueva') supabase.from('solicitudes').update({ estado: 'revision' }).eq('id', cotizarSol.id).then(() => recargar.solicitudes && recargar.solicitudes());
+    limpiarCotizar && limpiarCotizar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cotizarSol]);
 
   async function guardar(e, generar = false) {
     if (e) e.preventDefault();
@@ -76,7 +98,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
     if (!items.length || items.some((i) => !(i.cantidad > 0))) return setErr('Cada línea necesita una cantidad mayor que cero.');
     if (items.some((i) => !(i.precio > 0))) return setErr('Cada línea necesita un precio. Si el costo sale en 0, completa recetas y precios o escribe el precio a mano.');
     const v = new Date(M.t0); v.setDate(v.getDate() + (+K.C.validezDias || 15));
-    const body = { numero: String(draft.numero).trim(), cliente: draft.cliente.trim(), contacto: draft.contacto.trim(), items, notas: draft.notas, metodo_pago: String(draft.metodo_pago || '').trim() || PAGO_BASE, fecha_entrega: draft.fecha_entrega || null, validez: isoDay(v), total: items.reduce((a, i) => a + i.cantidad * i.precio, 0) };
+    const body = { ...(draft.solicitud_id && !draft.id ? { solicitud_id: draft.solicitud_id } : {}), numero: String(draft.numero).trim(), cliente: draft.cliente.trim(), contacto: draft.contacto.trim(), items, notas: draft.notas, metodo_pago: String(draft.metodo_pago || '').trim() || PAGO_BASE, fecha_entrega: draft.fecha_entrega || null, validez: isoDay(v), total: items.reduce((a, i) => a + i.cantidad * i.precio, 0) };
     const ventana = generar ? window.open('', '_blank') : null; // se abre ya para que el navegador no la bloquee
     setBusy(true);
     const { data: fila, error } = draft.id
@@ -91,7 +113,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
     if (error) { if (ventana) ventana.close(); return setErr('No se pudo guardar: ' + (/duplicate/.test(error.message) ? 'ya existe una cotización con ese número.' : error.message)); }
     avisar(draft.id ? 'Cotización actualizada.' : `Cotización ${body.numero} creada.`);
     if (ventana) ventana.location.href = '/cotizacion/' + fila.id;
-    setDraft(null); recargar.cotizaciones(); recargar.clientes && recargar.clientes();
+    setDraft(null); recargar.cotizaciones(); recargar.clientes && recargar.clientes(); recargar.solicitudes && recargar.solicitudes();
   }
 
   async function estado(c, est) {
@@ -126,11 +148,36 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
         <div className="kpi"><span className="k">Monto en negociación</span><span className="v">{usd0.format(cotizaciones.filter((c) => c.estado === 'enviada').reduce((a, c) => a + (+c.total || 0), 0))}</span></div>
         <div className="kpi"><span className="k">Tasa de aprobación</span><span className="v">{cerradas.length ? pct(aprobadas.length / cerradas.length) : '—'}</span></div>
       </div>
-      <div className="toolbar"><span /><button className="btn primary" onClick={nueva}>Nueva cotización</button></div>
+      <div className="toolbar">
+        <span className="small muted">{porCotizar.length ? `${porCotizar.length} solicitud${porCotizar.length > 1 ? 'es' : ''} de clientes por cotizar` : 'Toda cotización parte de una solicitud del cliente (pestaña Solicitudes).'}</span>
+        <span className="formacts" style={{ margin: 0 }}>
+          <button className="btn primary" onClick={() => (porCotizar.length === 1 ? nueva(porCotizar[0]) : setElegirSol(!elegirSol))} disabled={!porCotizar.length}>Cotizar una solicitud</button>
+          {perfil.rol === 'direccion' && <button className="btn" onClick={() => nueva()}>Cotización sin solicitud</button>}
+        </span>
+      </div>
+      {elegirSol && porCotizar.length > 1 && (
+        <div className="card elegir-sol" style={{ marginBottom: 14 }}>
+          <b className="small">¿Qué solicitud vas a cotizar?</b>
+          <div className="list" style={{ marginTop: 8 }}>
+            {porCotizar.map((s) => (
+              <button key={s.id} className="sol-opcion" onClick={() => nueva(s)}>
+                <b>{s.numero}</b> · {s.cliente} <span className="small muted">· {(s.items || []).map((i) => `${(M.cfg.productos[i.producto] || {}).nombre || i.producto} × ${nf.format(+i.cantidad || 0)}`).join(', ') || 'sin productos'}{s.fecha_deseada ? ` · para el ${fd(parseDay(s.fecha_deseada))}` : ''}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {draft && (
         <form className="card" onSubmit={guardar} noValidate style={{ marginBottom: 16 }}>
           <h3 style={{ marginBottom: 10 }}>{draft.id ? 'Editar cotización ' + draft.numero : 'Nueva cotización'}</h3>
+          {draft.solicitud_id && solDe(draft.solicitud_id) && (() => { const s = solDe(draft.solicitud_id); return (
+            <div className="sol-resumen small">
+              <b>Solicitud {s.numero}</b> · llegó por {CANALES[s.canal] || s.canal}{s.presupuesto ? ` · presupuesto del cliente ${usd.format(+s.presupuesto)}` : ''}
+              {s.detalle && <div>{s.detalle}</div>}
+              {s.referencias && <div className="muted">Referencias: {s.referencias}</div>}
+            </div>
+          ); })()}
           <div className="fgrid">
             <label className="f"># de cotización<input id="cot-num" value={draft.numero} disabled={!!draft.id} onChange={(e) => set((d) => { d.numero = e.target.value; })} /></label>
             <label className="f">Cliente<input id="cot-cli" list="lista-clientes-cot" autoComplete="off" value={draft.cliente} onChange={(e) => { const v = e.target.value; const cl = clientes.find((x) => x.nombre === v); set((d) => { d.cliente = v; if (cl) { d.contacto = d.contacto || cl.contacto || ''; d.rif = cl.rif || ''; d.direccion = cl.direccion || ''; d.telefono = cl.telefono || ''; } }); }} /></label>
@@ -215,6 +262,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                 <span>Creada: <b>{fd(new Date(c.creado))}</b></span>
                 {c.validez && <span>Válida hasta: <b>{fd(parseDay(c.validez))}</b></span>}
                 {c.ordenes && c.ordenes.length > 0 && <span>Pedidos: <b>{c.ordenes.join(', ')}</b></span>}
+                {c.solicitud_id && solDe(c.solicitud_id) && <span>Solicitud: <b>{solDe(c.solicitud_id).numero}</b></span>}
               </div>
               <PasosCot c={c} M={M} hitos={hitos} perfil={perfil} supabase={supabase} avisar={avisar} recargar={recargar} />
               <div className="flags">

@@ -162,6 +162,18 @@ En **Estampado** elige **Bordado** y luego **¿Quién borda?**:
 
 Solo los materiales marcados **Almacén** en la lista (hilos, etiquetas, empaque que tengas guardados) llevan stock: a esos se les descuenta la cantidad y avisan a compras cuando se acaban. Lo pueden hacer compras, administración, el jefe de taller y dirección.
 
+## Solicitudes del cliente (Ventas)
+
+Toda cotización empieza con una **solicitud**: lo que pide el cliente, registrado por **Ventas**.
+
+1. **Ventas** abre la pestaña **Solicitudes** → **Nueva solicitud** y anota el cliente, la persona de contacto, el teléfono o correo, por dónde llegó (WhatsApp, Instagram, correo, llamada, tienda, referido), los productos con la cantidad aproximada, las tallas si las sabe, el estampado, para cuándo lo necesita, el presupuesto si lo dijo, el detalle de lo que contó y enlaces a fotos o artes de referencia. No lleva precios. Recibe un número: SOL-0001, SOL-0002…
+2. A **Administración** y **Dirección** les llega un aviso. En **Solicitudes**, la solicitud aparece *Nueva · por cotizar* (en rojo si lleva más de 2 días esperando).
+3. **Cotizar** abre **Costos → Cotizaciones** con el cliente, el contacto, la fecha y los productos ya cargados, y el detalle de la solicitud arriba. Se ponen los precios y **Guardar y generar cotización**. La solicitud pasa a *Cotizada* y a Ventas le llega el aviso para enviarla al cliente (**Ver cotización** → **Descargar PDF**).
+4. Cuando el cliente aprueba o rechaza la cotización, la solicitud cambia sola a *Aprobada* (con sus pedidos) o *Rechazada*.
+5. Si el cliente desiste antes de cotizar, **Descartar** con el motivo. Se puede **Reabrir**.
+
+En **Costos → Cotizaciones**, **Cotizar una solicitud** muestra las que están pendientes. Solo **Dirección** puede hacer una **Cotización sin solicitud**. Arriba de Solicitudes se ven las que están por cotizar, las que esperan al cliente, el tiempo promedio para cotizar y la tasa de cierre. Ventas ve el total y el estado de la cotización, pero no los costos.
+
 ## Del pedido a la orden de producción
 
 0. **Pedido creado primero** (Nuevo pedido o Nuevo pedido desde OC): el primer paso es **Generar cotización** en el pedido; la app arma la cotización con los datos del pedido y el formato del taller. Cuando el cliente la acepta, sigue con **Enviar orden de producción** (al enviarla, la cotización queda aprobada).
@@ -181,7 +193,8 @@ Cada pedido dice en qué **paso del flujograma** va (por ejemplo *paso 14 de 31*
 
 | # | Paso | Responsable | Cómo se cumple |
 |---|---|---|---|
-| 1–2 | Solicitud de cotización registrada | Comercial | Sola, al crear la cotización |
+| 1 | Cliente solicita cotización | Ventas | Ventas registra la **solicitud** |
+| 2 | Solicitud procesada y pasada a cotizar | Ventas | Sola, al cotizar la solicitud |
 | 3 | Ficha técnica preliminar y mockup | Diseño | **Marcar** |
 | 4 | Costo y precio calculados | Comercial | Sola |
 | 5 | Dirección aprueba precio, descuento y fecha | Dirección | **Aprobar** en la cotización |
@@ -233,7 +246,7 @@ Todo entra en el costo real, en el margen y en el informe de cierre.
 
 ### Generar una cotización
 
-**Costos → Cotizaciones → Nueva cotización.** Llena número (la app propone el siguiente: 280, 281…), cliente (si ya existe, trae contacto, RIF, dirección y teléfono), productos con su código (FR01, CH01…), descripción, cantidad y precio, observaciones y métodos de pago. Pulsa **Guardar y generar cotización**: se abre la cotización con el formato de Hawaiira Studio y el botón **Descargar PDF**, que la guarda como «P280 CLIENTE - HAWAIIRA STUDIO». En la lista, cada cotización tiene el botón **Generar cotización** para volver a abrirla. Los datos de la empresa, el próximo número, las observaciones y el método de pago por defecto se cambian en **Costos → Mano de obra e indirectos → Datos de la empresa**.
+**Costos → Cotizaciones → Cotizar una solicitud** (o **Cotizar** desde la pestaña Solicitudes). Revisa el número (la app propone el siguiente: 280, 281…), cliente (si ya existe, trae contacto, RIF, dirección y teléfono), productos con su código (FR01, CH01…), descripción, cantidad y precio, observaciones y métodos de pago. Pulsa **Guardar y generar cotización**: se abre la cotización con el formato de Hawaiira Studio y el botón **Descargar PDF**, que la guarda como «P280 CLIENTE - HAWAIIRA STUDIO». En la lista, cada cotización tiene el botón **Generar cotización** para volver a abrirla. Los datos de la empresa, el próximo número, las observaciones y el método de pago por defecto se cambian en **Costos → Mano de obra e indirectos → Datos de la empresa**.
 
 | Sección | Para qué sirve |
 | --- | --- |
@@ -283,6 +296,7 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 
 | Rol | Responsabilidades en la app |
 |---|---|
+| **Ventas** | Registrar cada pedido de cotización del cliente en **Solicitudes**, enviar la cotización al cliente cuando esté lista (**Ver cotización**) y seguir sus solicitudes hasta que se aprueben o se descarten. |
 | **Producción** | Registrar piezas terminadas a lo largo del día. Revisar los recordatorios. |
 | **Diseño** | Conseguir la aprobación del arte y marcar **Arte aprobado**. Marcar **Preprensa lista**. |
 | **Compras** | Al llegar una orden de producción, indicar si **hay material** o **falta** (paso 15), registrar la compra y la recepción, y marcar **Material listo** cuando la tela y los avíos estén en el taller. Mantener al día la lista de precios en **Materiales** y cargar los **materiales de cada pedido** (Pedidos → Materiales). |
@@ -324,6 +338,7 @@ Avisos en la pantalla del computador o del teléfono, **aunque la app esté cerr
 | Tipo | Novedades | Quién lo recibe |
 |---|---|---|
 | Pedidos | Nuevo pedido, pedido activado con la OC, listo para despachar, entregado | Dueño del pedido, jefe de taller, compras, administración |
+| Solicitudes | Solicitud nueva · solicitud cotizada, aprobada o rechazada | Administración · quien la registró (Ventas) |
 | Cotizaciones | Aprobada o rechazada | Quien la creó y administración |
 | Alertas en rojo | Pedido que se va tarde, material sin confirmar cerca del corte, nuevo cuello de botella | Dueño del pedido, jefe de taller, compras |
 | Producción | Un pedido termina una etapa | Jefe de taller y dueño del pedido |

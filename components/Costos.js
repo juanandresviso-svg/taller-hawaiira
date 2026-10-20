@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import CostosPedidos from './CostosPedidos';
 import Cotizaciones from './Cotizaciones';
 import Materiales from './Materiales';
@@ -10,6 +10,7 @@ const VISTAS = { pedidos: 'Costo por pedido', cotizaciones: 'Cotizaciones', mate
 export default function Costos(props) {
   const [vista, setVista] = useState(() => { try { return localStorage.getItem('costos:vista') || 'pedidos'; } catch { return 'pedidos'; } });
   const ir = (v) => { setVista(v); try { localStorage.setItem('costos:vista', v); } catch {} };
+  useEffect(() => { if (props.cotizarSol) setVista('cotizaciones'); }, [props.cotizarSol]);
   if (!props.K) return <div className="empty">Cargando costos…</div>;
   return (
     <>
