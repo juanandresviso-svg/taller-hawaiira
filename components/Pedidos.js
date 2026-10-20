@@ -7,6 +7,8 @@ import Salida from './Salida';
 import Importar from './Importar';
 import { subirOC, verOC, OC_TIPOS } from '@/lib/oc';
 import { revisarNovedades } from '@/lib/avisos';
+import { pasosDe, cotizacionDe } from '@/lib/proceso';
+import Seguimiento from './Seguimiento';
 
 const EDITAN = ['direccion', 'jefa', 'admin', 'compras', 'diseno'];
 
@@ -16,7 +18,7 @@ function nuevoCodigo(ordenes) {
   return 'OP-' + String(m + 1).padStart(4, '0');
 }
 
-export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materiales, consumos, veMateriales, avisar, recargar }) {
+export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materiales, consumos, veMateriales, veCostos, cotizaciones, hitos = [], documentos = [], avisar, recargar }) {
   const [filtro, setFiltro] = useState('activos');
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
@@ -30,10 +32,19 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
   const [ocNum, setOcNum] = useState('');
   const puede = EDITAN.includes(perfil.rol);
 
+  // Seguimiento del flujo de cada pedido (pasos cumplidos, próximo paso y documentos en Drive)
+  const hitosDe = {}, docsDe = {};
+  hitos.forEach((h) => { if (h.orden_id) (hitosDe[h.orden_id] = hitosDe[h.orden_id] || []).push(h); });
+  documentos.forEach((d) => { if (d.orden_id) (docsDe[d.orden_id] = docsDe[d.orden_id] || []).push(d); });
+  const SEG = {};
+  ordenes.forEach((o) => { SEG[o.id] = pasosDe(o, { M, hitos: hitosDe[o.id] || [], cot: veCostos ? cotizacionDe(o, cotizaciones) : undefined }); });
+
   let list = ordenes.slice();
   const enEspera = ordenes.filter((o) => o.estado === 'espera');
+  const porCobrar = ordenes.filter((o) => o.estado === 'entregado' && !SEG[o.id].cerrado);
   if (filtro === 'activos') list = list.filter((o) => o.estado !== 'entregado');
   else if (filtro === 'espera') list = enEspera.slice();
+  else if (filtro === 'cobrar') list = porCobrar.slice();
   else if (filtro === 'entregados') list = list.filter((o) => o.estado === 'entregado');
   const rank = { rojo: 0, amarillo: 1, verde: 2, listo: 3, entregado: 4 };
   const rk = (o) => (o.estado === 'espera' ? -1 : rank[M.status[o.id]?.est] ?? 5);
@@ -85,7 +96,7 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
     <>
       <div className="toolbar">
         <div className="chips" style={{ margin: 0 }}>
-          {[['activos', 'Activos'], ['espera', `Por activar${enEspera.length ? ' (' + enEspera.length + ')' : ''}`], ['entregados', 'Entregados'], ['todos', 'Todos']].map(([k, v]) => (
+          {[['activos', 'Activos'], ['espera', `Por activar${enEspera.length ? ' (' + enEspera.length + ')' : ''}`], ['cobrar', `Por cobrar${porCobrar.length ? ' (' + porCobrar.length + ')' : ''}`], ['entregados', 'Entregados'], ['todos', 'Todos']].map(([k, v]) => (
             <button key={k} className="chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{v}</button>
           ))}
         </div>
@@ -247,12 +258,13 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                     </div>
                   )}
                 </div>
+                <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} />
                 {salida === o.id && <Salida supabase={supabase} orden={o} materiales={materiales} consumos={consumos} avisar={avisar} onClose={() => setSalida(null)} puedeBorrar={['direccion', 'jefa', 'admin'].includes(perfil.rol)} />}
               </article>
             );
           })}
         </div>
-      ) : <div className="empty">{filtro === 'activos' ? 'No hay pedidos activos. Crea el primero con "Nuevo pedido".' : filtro === 'espera' ? 'No hay pedidos esperando orden de compra.' : 'No hay pedidos en esta vista.'}</div>}
+      ) : <div className="empty">{filtro === 'activos' ? 'No hay pedidos activos. Crea el primero con "Nuevo pedido".' : filtro === 'espera' ? 'No hay pedidos esperando orden de compra.' : filtro === 'cobrar' ? 'No hay pedidos entregados pendientes de cobro.' : 'No hay pedidos en esta vista.'}</div>}
     </>
   );
 }

@@ -26,6 +26,16 @@ const TABS = {
   ajustes: 'Ajustes',
   usuarios: 'Usuarios',
 };
+const DRIVE_MSJ = {
+  ok: 'Google Drive conectado. Los documentos de cada pedido se empiezan a guardar en la carpeta "Taller Hawaiira · Documentos".',
+  cancelado: 'Se canceló la conexión con Google Drive.',
+  permiso: 'Solo Dirección puede conectar Google Drive.',
+  variables: 'Faltan GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en Vercel (instructivo, paso 4.6).',
+  vencido: 'La conexión con Google tardó demasiado. Inténtalo otra vez.',
+  'sin-permiso': 'Google no entregó el permiso permanente. Quita el acceso de la app en tu cuenta de Google y vuelve a conectar.',
+  error: 'No se pudo conectar Google Drive. Revisa el instructivo, paso 4.6.',
+};
+
 function tabsPara(rol) {
   if (rol === 'operador') return ['taller'];
   if (rol === 'direccion') return ['tablero', 'pedidos', 'taller', 'costos', 'ajustes', 'usuarios'];
@@ -49,6 +59,8 @@ export default function App({ perfil, cliente }) {
   const [consumos, setConsumos] = useState([]);
   const [costosCfg, setCostosCfg] = useState(null);
   const [cotizaciones, setCotizaciones] = useState([]);
+  const [hitos, setHitos] = useState([]);
+  const [documentos, setDocumentos] = useState([]);
   const veMateriales = MATERIAL_ROLES.includes(perfil.rol), veCostos = COSTO_ROLES.includes(perfil.rol);
   const [live, setLive] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -76,6 +88,9 @@ export default function App({ perfil, cliente }) {
     },
     tiempos: async () => { const { data } = await supabase.from('v_tiempos').select('*'); setTiempos(data || []); },
     historial: async () => { const { data } = await supabase.from('historial').select('*'); setHistorial(Object.fromEntries((data || []).map((h) => [h.semana, h]))); },
+    // Seguimiento del flujo (si aún no se corrió la migración 06, quedan vacíos)
+    hitos: async () => { const { data } = await supabase.from('hitos').select('*'); setHitos(data || []); },
+    documentos: async () => { const { data } = await supabase.from('documentos').select('clave, orden_id, cotizacion_id, tipo, nombre, url, estado').neq('tipo', 'registro'); setDocumentos(data || []); },
     ...(veMateriales ? {
       materiales: async () => { const { data } = await supabase.from('materiales').select('*').order('categoria').order('nombre'); setMateriales(data || []); },
       consumos: async () => { const { data } = await supabase.from('consumos').select('*').order('ts', { ascending: false }).limit(5000); setConsumos(data || []); },
@@ -88,9 +103,12 @@ export default function App({ perfil, cliente }) {
 
   useEffect(() => {
     try {
-      const q = new URLSearchParams(window.location.search).get('tab'); // al tocar una notificación
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('tab'); // al tocar una notificación o al volver de Google
       const t = q || localStorage.getItem('tab');
       if (t && permitidas.includes(t)) setTab(t);
+      const dr = params.get('drive');
+      if (dr) avisar(DRIVE_MSJ[dr] || 'Google Drive: ' + dr);
       if (q) window.history.replaceState(null, '', '/');
     } catch {}
     Promise.all(Object.values(cargar).map((f) => f())).finally(() => setCargando(false));
@@ -100,7 +118,9 @@ export default function App({ perfil, cliente }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes' }, () => { refrescar('ordenes'); refrescar('tiempos'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registros' }, () => { refrescar('registros'); refrescar('tiempos'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => refrescar('config'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => refrescar('perfiles'));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => refrescar('perfiles'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hitos' }, () => refrescar('hitos'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'documentos' }, () => refrescar('documentos'));
     if (veMateriales) canal
       .on('postgres_changes', { event: '*', schema: 'public', table: 'materiales' }, () => refrescar('materiales'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'consumos' }, () => refrescar('consumos'));
@@ -147,7 +167,7 @@ export default function App({ perfil, cliente }) {
 
   const cambiarTab = (t) => { setTab(t); try { localStorage.setItem('tab', t); } catch {} window.scrollTo(0, 0); };
   const K = useMemo(() => (veCostos ? crearCostos({ M, cc: costosCfg, materiales }) : null), [veCostos, M, costosCfg, materiales]);
-  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, veMateriales, veCostos, avisar, recargar: cargar };
+  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, hitos, documentos, veMateriales, veCostos, avisar, recargar: cargar };
 
   return (
     <>

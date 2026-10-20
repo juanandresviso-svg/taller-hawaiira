@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { cfgBase, estimarProducto, ETAPAS_PROD } from '@/lib/aprendizaje';
 import { nf, nf1 } from '@/lib/motor';
 import { GenerarClaves } from './Avisos';
+import DrivePanel from './DrivePanel';
 
 const ETAPA_NOMBRE = { corte: 'Corte', costura: 'Costura', empaque: 'Empaque y revisión' };
 
@@ -107,6 +108,13 @@ export default function Ajustes({ supabase, perfil, config, A, avisar }) {
         </div>
         <p className="small muted" style={{ marginBottom: 0 }}>Para que el resultado sea fiel, el equipo debe registrar cada paquete apenas lo termina (o usar Empezar). El detalle de cada pedido está en su Informe de producción.</p>
       </div>
+
+      {perfil && ['direccion', 'jefa'].includes(perfil.rol) && (
+        <>
+          <h2>Google Drive</h2>
+          <DrivePanel perfil={perfil} avisar={avisar} />
+        </>
+      )}
 
       {perfil && perfil.rol === 'direccion' && (
         <>

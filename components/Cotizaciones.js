@@ -17,7 +17,7 @@ function siguiente(lista, prefijo) {
 }
 const itemVacio = (prod) => ({ producto: prod, descripcion: '', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, precio: '', manual: false });
 
-export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaciones, avisar, recargar }) {
+export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaciones, documentos = [], avisar, recargar }) {
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -179,6 +179,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
               </div>
               <div className="flags">
                 <a className="btn sm" href={`/cotizacion/${c.id}`} target="_blank" rel="noreferrer">Ver / descargar PDF</a>
+                {(() => { const d = documentos.find((x) => x.clave === 'doc:cot:' + c.id && x.estado === 'ok'); return d ? <a className="btn sm" href={d.url} target="_blank" rel="noreferrer">En Drive</a> : null; })()}
                 {aprobar === c.id ? (
                   <span className="acts">
                     <label className="small muted">Entrega comprometida <input type="date" value={fechaAprob} onChange={(e) => setFechaAprob(e.target.value)} style={{ width: 'auto', display: 'inline-block' }} /></label>

@@ -154,6 +154,36 @@ En **Estampado** elige **Bordado** y luego **¿Quién borda?**:
 
 Cada vez que salga material del almacén para un pedido (tela, hilo, etiquetas, tinta…), pulsa **Salida de material** en ese pedido, elige el material y la cantidad. El stock baja solo y el costo real del pedido se actualiza. Lo pueden hacer compras, administración, el jefe de taller y dirección.
 
+## Seguimiento del flujo del pedido
+
+Cada pedido sigue el flujograma del taller, de la cotización al cobro, en 5 fases: **Cotización → Aprobación y arte → Planificación y compras → Producción y calidad → Entrega y cobro**.
+
+En cada tarjeta de **Pedidos** la barra de colores muestra la fase (verde azulado: cumplida; naranja: la actual) y debajo el **próximo paso** con su responsable. Pulsa **Seguimiento** para ver todos los pasos con la fecha, quién lo hizo y el documento guardado en Google Drive.
+
+| Paso | Responsable | Cómo se cumple | Documento en Drive |
+|---|---|---|---|
+| Cotización enviada al cliente | Comercial | Sola, al pasar la cotización a *Enviada* | 01 Cotización |
+| Cliente acepta la cotización | Comercial | Sola, al aprobar la cotización | — |
+| Orden de compra recibida | Comercial | Sola, al subir la OC (o activar sin OC) | 02 Orden de compra |
+| Anticipo recibido | Administración | Botón **Anticipo** o **Marcar** en Seguimiento | — |
+| Arte final aprobado | Diseño | Botón **Arte aprobado** (solo si lleva estampado) | — |
+| Orden de producción emitida | Planificación | Sola, al activar el pedido | 03 Orden de producción |
+| Material listo en almacén | Compras | Botón **Material listo** | — |
+| Producción terminada | Producción | Sola, cuando corte, estampado y costura registran todo | — |
+| Control de calidad aprobado | Jefe(a) de taller | **Marcar hecho** en Seguimiento | — |
+| Inspección final y empaque | Empaque | Sola, cuando empaque registra todo | 04 Nota de entrega |
+| Entregado al cliente | Despacho | Botón **Marcar entregado** | — |
+| Saldo facturado | Administración | **Marcar hecho** (anota el n.º de factura) | — |
+| Saldo cobrado · pedido cerrado | Administración | **Marcar hecho** (anota la referencia del pago) | 05 Informe de cierre |
+
+- Los pasos que se marcan a mano solo los puede marcar su responsable (y Dirección). Si te equivocas, pulsa **Quitar**.
+- El filtro **Por cobrar** muestra los pedidos entregados que aún no se cobran. Si pasan 3 días sin cobrar, Administración recibe una alerta.
+- En el **Tablero**, *Flujo de pedidos* muestra cuántos pedidos hay en cada fase y la lista de pasos que le tocan a tu cargo.
+
+### Documentos en Google Drive
+
+Con Google Drive conectado (Ajustes → Google Drive, lo hace Dirección una vez), la app guarda sola los documentos de cada paso importante en la carpeta **Taller Hawaiira · Documentos → Pedidos → OP-xxxx · Cliente**, y anota cada paso en la hoja **Seguimiento de pedidos** (pestaña *Estado de pedidos*: una fila por pedido con su fase y próximo paso; pestaña *Bitácora*: una fila por paso cumplido con fecha, responsable y enlace al documento). Nadie tiene que subir nada a mano: la nota de entrega sale lista para imprimir y firmar.
+
 ## Costos (dirección, jefe de taller y administración)
 
 | Sección | Para qué sirve |
@@ -207,9 +237,9 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 | **Producción** | Registrar piezas terminadas a lo largo del día. Revisar los recordatorios. |
 | **Diseño** | Conseguir la aprobación del arte y marcar **Arte aprobado**. Marcar **Preprensa lista**. |
 | **Compras** | Marcar **Material listo** cuando la tela y los avíos estén en el taller. Mantener precios y stock en **Materiales** y registrar las **salidas de material** de cada pedido. |
-| **Administración** | Marcar **Anticipo** al cobrar. Coordinar la factura de los pedidos listos para despachar. |
-| **Jefe(a) de taller** | Revisar el plan del día de todas las estaciones, atender las alertas "sin avance", corregir registros en **Mi trabajo → Registros recientes** y mantener los tiempos en **Ajustes**. |
-| **Dirección** | Todo lo anterior, más invitar y desactivar personas en **Usuarios**, revisar recomendaciones y eliminar pedidos. |
+| **Administración** | Marcar **Anticipo** al cobrar. Facturar y cobrar el saldo, y marcar **Saldo facturado** y **Saldo cobrado** en el Seguimiento (revisa el filtro **Por cobrar**). |
+| **Jefe(a) de taller** | Revisar el plan del día de todas las estaciones, atender las alertas "sin avance", marcar **Control de calidad aprobado** en el Seguimiento, corregir registros en **Mi trabajo → Registros recientes** y mantener los tiempos en **Ajustes**. |
+| **Dirección** | Todo lo anterior, más invitar y desactivar personas en **Usuarios**, revisar recomendaciones, eliminar pedidos y conectar **Google Drive** en Ajustes. |
 | **Dueño de cada pedido** | Mantener al cliente informado y renegociar la fecha si el pedido pasa a rojo. |
 
 ### Solo para jefe(a) de taller y dirección: Ajustes

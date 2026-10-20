@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { POOLS, POOL_NAME, ROLES_ALERTA, nf, nf1, pct, isoDay, mondayOf } from '@/lib/motor';
+import FlujoPedidos from './FlujoPedidos';
 
 const ROL_A_FILTRO = { direccion: 'todas', jefa: 'jefa', diseno: 'diseno', compras: 'compras', admin: 'admin' };
 const NIVEL = { temporal: 'Sobrecarga temporal', recurrente: 'Sobrecarga recurrente', estructural: 'Expansión', aviso: 'Cerca del límite', riesgo: 'Riesgo' };
 
-export default function Tablero({ M, perfil, registros, perfiles, ordenes }) {
+export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos, cotizaciones, veCostos }) {
   const [rol, setRol] = useState(ROL_A_FILTRO[perfil.rol] || 'todas');
   const act = M.activos;
   const espera = ordenes.filter((o) => o.estado === 'espera');
@@ -37,6 +38,8 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes }) {
         <div><span className="k">Listos para despachar</span><span className={'v ' + (cnt.listo ? 'info' : '')}>{cnt.listo}</span></div>
         <div><span className="k">Estación más cargada (2 sem.)</span><span className={'v ' + (bn && bn.u > 1 ? 'bad' : bn && bn.u > 0.85 ? 'warn' : 'ok')}>{bn ? pct(bn.u) : '—'} <small>{bn ? POOL_NAME[bn.p] : ''}</small></span></div>
       </div>
+
+      <FlujoPedidos M={M} perfil={perfil} ordenes={ordenes} hitos={hitos} cotizaciones={cotizaciones} veCostos={veCostos} />
 
       {espera.length > 0 && <div className="banner warn">{espera.length === 1 ? '1 pedido espera' : espera.length + ' pedidos esperan'} la orden de compra del cliente para entrar en el plan: {espera.map((o) => o.codigo + ' · ' + o.cliente).join(', ')}. Súbela en Pedidos → Por activar.</div>}
       <h2>Alertas</h2>

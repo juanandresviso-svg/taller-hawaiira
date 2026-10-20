@@ -95,6 +95,7 @@ Guarda:
 6. Repite los pasos 1 a 4 con `supabase/migracion-03-tiempos.sql` (medición de tiempos reales, aprendizaje e informe de producción).
 7. Repite los pasos 1 a 4 con `supabase/migracion-04-avisos-oc.sql` (notificaciones push y orden de compra del cliente; crea también la carpeta privada `ordenes-compra` en **Storage**).
 8. Repite los pasos 1 a 4 con `supabase/migracion-05-enlaces.sql` (enlaces de invitación por rol).
+9. Repite los pasos 1 a 4 con `supabase/migracion-06-seguimiento-drive.sql` (seguimiento del flujo del pedido paso a paso y exportación de documentos a Google Drive).
 
 > Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 
@@ -254,6 +255,58 @@ Las notificaciones llegan aunque la app esté cerrada. Necesitan un par de clave
 
 **iPhone:** las notificaciones solo funcionan con la app agregada a la pantalla de inicio (Safari → Compartir → *Agregar a inicio*) y abierta desde ese ícono. En Android, Mac y Windows funcionan en Chrome o Edge, instalada o no.
 
+### 4.6 Google Drive: documentos de cada pedido (una sola vez)
+
+Con esto, en cada paso importante del pedido la app guarda el documento en Google Drive y anota el paso en una hoja de cálculo:
+
+```
+Taller Hawaiira · Documentos/
+├── Seguimiento de pedidos      ← hoja: "Estado de pedidos" (una fila por pedido) y "Bitácora" (una fila por paso cumplido)
+├── Cotizaciones/               ← cada cotización enviada, en PDF
+└── Pedidos/
+    └── OP-0012 · Cliente/
+        ├── 01 Cotización COT-0007.pdf        (al aprobar la cotización)
+        ├── 02 Orden de compra del cliente     (copia de la OC que se subió)
+        ├── 03 Orden de producción OP-0012.pdf (al activar el pedido)
+        ├── 04 Nota de entrega OP-0012.pdf     (al terminar el empaque o al marcar entregado)
+        └── 05 Informe de cierre OP-0012.pdf   (al marcar "Saldo cobrado")
+```
+
+Se usa el **Gmail del taller** (paso 1). La app pide el permiso más limitado de Google (`drive.file`): solo puede ver y modificar las carpetas y archivos que ella misma crea, nunca el resto del Drive.
+
+**A. Crear la llave en Google Cloud** (con el Gmail del taller abierto)
+
+1. Entra a **console.cloud.google.com** → arriba, selector de proyectos → **Proyecto nuevo** → nombre `Taller Hawaiira` → **Crear**. Verifica que quede seleccionado.
+2. **APIs y servicios → Biblioteca**: busca y **Habilita** `Google Drive API`. Repite con `Google Sheets API`.
+3. Menú → **Google Auth Platform** (o *APIs y servicios → Pantalla de consentimiento de OAuth*) → **Comenzar**:
+   - Nombre de la app: `Taller Hawaiira` · Correo de asistencia: el Gmail del taller.
+   - Público: **Externo**.
+   - Información de contacto: el Gmail del taller → acepta y **Crear**.
+4. **Acceso a los datos → Agregar o quitar permisos**: marca `.../auth/drive.file` ("Ver, editar, crear y borrar solo los archivos de Google Drive que uses con esta app") → **Actualizar** → **Guardar**.
+5. **Público → Publicar app → Confirmar**. Importante: si la app queda en modo *Prueba*, Google corta el permiso cada 7 días y la exportación se detiene.
+6. **Clientes → Crear cliente**:
+   - Tipo de aplicación: **Aplicación web** · Nombre: `App del taller`.
+   - **URIs de redireccionamiento autorizados → Agregar URI**: tu dirección + `/api/drive/callback`, por ejemplo `https://taller-hawaiira-v5ho.vercel.app/api/drive/callback`. (La app la muestra exacta en **Ajustes → Google Drive**, con botón **Copiar**.)
+   - **Crear**. Copia el **ID de cliente** y el **Secreto del cliente**.
+
+**B. Pegar la llave en Vercel**
+
+| Nombre | Valor |
+|---|---|
+| `GOOGLE_CLIENT_ID` | el ID de cliente (termina en `.apps.googleusercontent.com`) |
+| `GOOGLE_CLIENT_SECRET` | el secreto del cliente (empieza por `GOCSPX-`) |
+
+**Deployments → ⋯ → Redeploy**.
+
+**C. Conectar desde la app** (usuario de Dirección)
+
+1. **Ajustes → Google Drive → Conectar Google Drive**.
+2. Elige el **Gmail del taller** y pulsa **Permitir**. Si Google muestra *"Google no verificó esta app"*, pulsa **Configuración avanzada → Ir a Taller Hawaiira** (es tu propia app).
+3. Vuelves a la app con el aviso *Google Drive conectado*. Pulsa **Sincronizar ahora**: la primera vez sube los documentos de los pedidos en curso (puede tardar un par de minutos).
+4. Pulsa **Abrir carpeta** y **Abrir hoja de seguimiento** para verlas. Comparte la carpeta desde Drive con quien deba consultarla (solo lectura recomendada).
+
+Desde ese momento la app sincroniza sola después de cada cambio y una vez al día con el resumen. Los pedidos entregados antes de activar el seguimiento se consideran cerrados y no se exportan.
+
 ---
 
 ## 5. Tu primer usuario (Dirección)
@@ -336,6 +389,12 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | "Falta configurar las claves de notificaciones" | Faltan las variables VAPID o no se redesplegó | Revisa el paso 4.5 y pulsa **Redeploy**. |
 | La prueba de notificación no llega | Permiso bloqueado en el navegador o el sistema | Candado junto a la dirección → Notificaciones → Permitir. En Mac: Configuración del Sistema → Notificaciones → Chrome. Luego desactiva y vuelve a activar en la app. |
 | Error al subir la orden de compra | No se corrió la migración 04 | Corre `supabase/migracion-04-avisos-oc.sql` (paso 3.2). |
+| No aparece el seguimiento en los pedidos | No se corrió la migración 06 | Corre `supabase/migracion-06-seguimiento-drive.sql` (paso 3.2). |
+| Ajustes → Google Drive dice "Falta configurar" | Faltan `GOOGLE_CLIENT_ID` o `GOOGLE_CLIENT_SECRET`, o no se redesplegó | Revisa el paso 4.6 B y pulsa **Redeploy**. |
+| Google dice `redirect_uri_mismatch` al conectar | La dirección de regreso no es idéntica a la registrada | Copia la que muestra **Ajustes → Google Drive** y pégala en Google Cloud → Clientes → URIs de redireccionamiento (paso 4.6 A.6). |
+| "Google revocó o venció el permiso" | La app de Google quedó en modo Prueba (7 días) o se quitó el acceso | Publica la app (paso 4.6 A.5) y vuelve a pulsar **Conectar Google Drive**. |
+| Un documento dice "no se pudo guardar en Drive" | Falló la subida (red o permiso) | La app reintenta sola hasta 5 veces. El detalle está en **Ajustes → Google Drive → Documentos con error**. |
+| Borré la carpeta en Drive por error | — | Sácala de la papelera de Drive. Si ya no está, pulsa **Sincronizar ahora**: la app la vuelve a armar completa. |
 | Supabase pausó el proyecto | En el plan gratuito se pausa tras 7 días sin uso | El resumen diario lo mantiene activo. Si pasa, pulsa **Restore**. |
 
 **Respaldos:** cuando el taller dependa de la app, pasa a **Supabase Pro** para tener copias diarias.
@@ -357,3 +416,4 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` | App → Notificaciones → Generar claves (paso 4.5) | Solo Vercel |
 | `VAPID_SUBJECT` | `mailto:` + Gmail del taller | Vercel |
 | Dirección de la app | Vercel, después del primer despliegue | Supabase → URL Configuration |
+| `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` | Google Cloud → Google Auth Platform → Clientes (paso 4.6) | Solo Vercel |

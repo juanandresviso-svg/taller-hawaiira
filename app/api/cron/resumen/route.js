@@ -4,8 +4,10 @@ import { crearMotor, ordenDesdeDb, POOLS, POOL_NAME, pct, fd, isoWeek } from '@/
 import { enviarCorreo, htmlResumen } from '@/lib/correo';
 import { siteUrl } from '@/lib/sitio';
 import { revisarYAvisar } from '@/lib/push';
+import { seguimiento } from '@/lib/seguimiento';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 // Resumen diario de alertas por correo (Gmail del taller). Vercel lo llama según vercel.json.
 export async function GET(request) {
@@ -30,6 +32,9 @@ export async function GET(request) {
   // Notificaciones push de lo que haya cambiado (por si nadie abrió la app)
   let push = null;
   try { push = await revisarYAvisar(db); } catch (e) { console.error('push', e.message); }
+  // Seguimiento del flujo y documentos en Google Drive (por si quedó algo pendiente)
+  let drive = null;
+  try { drive = await seguimiento(db, { limite: 12 }); } catch (e) { console.error('seguimiento', e.message); }
 
   const site = siteUrl(request);
   const fecha = fd(M.t0);
@@ -50,5 +55,5 @@ export async function GET(request) {
       console.error('Error enviando a', p.email, e.message);
     }
   }
-  return NextResponse.json({ ok: true, enviados: enviados.length, push });
+  return NextResponse.json({ ok: true, enviados: enviados.length, push, drive });
 }
