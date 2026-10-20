@@ -380,3 +380,15 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); 
 .cf-datos th, .cf-datos td { border: 0 !important; background: none; }
 .cf-t th { font-size: 13px; }
 .cf-t td { font-size: 12.5px; }
+
+/* Editar costos de un pedido */
+.ed-costos { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.ed-costos h4 { margin: 10px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--tide); }
+.ed-costos table { width: 100%; }
+.ed-costos .nowrap { white-space: nowrap; }
+.ed-venta { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.ed-venta .f { max-width: 220px; }
+.ed-fila { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.ed-fila select { flex: 2 1 220px; min-width: 0; }
+.ed-fila input { flex: 1 1 120px; min-width: 0; }
+.ed-form { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-top: 6px; }

@@ -98,6 +98,7 @@ Guarda:
 9. Repite los pasos 1 a 4 con `supabase/migracion-06-seguimiento-drive.sql` (seguimiento del flujo del pedido paso a paso y exportación de documentos a Google Drive).
 10. Repite los pasos 1 a 4 con `supabase/migracion-07-clientes-oc-trazabilidad.sql` (clientes y sus estadísticas, datos leídos de la orden de compra, envío de la orden de producción y los 31 pasos del flujograma). Crea los clientes de los pedidos y cotizaciones que ya existen.
 11. Repite los pasos 1 a 4 con `supabase/migracion-08-formato-cotizacion.sql` (formato de cotización de Hawaiira Studio: método de pago, datos de INVERSIONES HAWAIIRA C.A. y numeración desde la 280).
+12. Repite los pasos 1 a 4 con `supabase/migracion-09-costos-pedido.sql` (costos adicionales de cada pedido y corrección de salidas de material).
 
 > Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 

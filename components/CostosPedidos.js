@@ -3,15 +3,16 @@ import { useState } from 'react';
 import { usd, usd0 } from '@/lib/costos';
 import { POOL_NAME, nf, nf1, pct, fd, parseDay } from '@/lib/motor';
 import { decoTexto } from './ui';
+import EditorCostos from './EditorCostos';
 
 // Costo presupuestado vs costo real de cada pedido, con su margen.
-export default function CostosPedidos({ M, K, ordenes, consumos, materiales }) {
+export default function CostosPedidos({ M, K, ordenes, consumos, materiales, costosPedido = [], supabase, avisar, recargar }) {
   const [filtro, setFiltro] = useState('activos');
   const [abierto, setAbierto] = useState(null);
 
   const lista = ordenes.filter((o) => (filtro === 'todos' ? true : filtro === 'activos' ? o.estado !== 'entregado' : o.estado === 'entregado'));
   const filas = lista.map((o) => {
-    const p = K.presupuesto(o), r = K.real(o, consumos);
+    const p = K.presupuesto(o), r = K.real(o, consumos, costosPedido);
     const margen = o.monto ? (o.monto - p.total) / o.monto : null;
     const desvMat = r.materiales - p.materiales * Math.min(1, r.avance || 0);
     return { o, p, r, margen, desvMat };
@@ -34,6 +35,7 @@ export default function CostosPedidos({ M, K, ordenes, consumos, materiales }) {
       </div>
       {incompletos > 0 && <div className="banner warn">{incompletos} pedido{incompletos > 1 ? 's tienen' : ' tiene'} el costo incompleto (falta receta, precios de materiales o mano de obra). Complétalo en Recetas, Materiales y Parámetros.</div>}
 
+      <p className="small muted" style={{ margin: '0 0 8px' }}>Toca un pedido para ver el detalle y <b>editar o agregar costos</b>: venta, salidas de material y costos adicionales (transporte, terceros, compras puntuales, horas extra).</p>
       <div className="chips">
         {[['activos', 'Activos'], ['entregados', 'Entregados'], ['todos', 'Todos']].map(([k, v]) => <button key={k} className="chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{v}</button>)}
       </div>
@@ -42,23 +44,23 @@ export default function CostosPedidos({ M, K, ordenes, consumos, materiales }) {
           <thead><tr><th>Pedido</th><th>Cliente</th><th className="r">Cant.</th><th className="r">Venta</th><th className="r">Presupuesto</th><th className="r">Margen est.</th><th className="r">Real a la fecha</th><th className="r">Avance</th><th className="r">Material vs. presupuesto</th></tr></thead>
           <tbody>
             {filas.map(({ o, p, r, margen, desvMat }) => (
-              <FilaPedido key={o.id} {...{ o, p, r, margen, desvMat, M, K, materiales }} abierto={abierto === o.id} onClick={() => setAbierto(abierto === o.id ? null : o.id)} />
+              <FilaPedido key={o.id} {...{ o, p, r, margen, desvMat, M, K, materiales, supabase, avisar, recargar }} abierto={abierto === o.id} onClick={() => setAbierto(abierto === o.id ? null : o.id)} />
             ))}
           </tbody>
         </table>
         {!filas.length && <div className="empty" style={{ marginTop: 10 }}>No hay pedidos en esta vista.</div>}
       </div>
-      <p className="small muted">Presupuesto = materiales según receta + mano de obra según tiempos estándar + bordado externo + indirectos. Real a la fecha = material que salió del almacén para el pedido + mano de obra de las piezas ya registradas + indirectos. "Material vs. presupuesto" compara lo que salió con lo que debería haber salido según el avance: en rojo, se está gastando de más.</p>
+      <p className="small muted">Presupuesto = materiales según receta + mano de obra según tiempos estándar + bordado externo + indirectos. Real a la fecha = material que salió del almacén para el pedido + mano de obra de las piezas ya registradas + indirectos + costos adicionales cargados a mano. "Material vs. presupuesto" compara lo que salió con lo que debería haber salido según el avance: en rojo, se está gastando de más.</p>
     </>
   );
 }
 
-function FilaPedido({ o, p, r, margen, desvMat, M, K, abierto, onClick, materiales }) {
+function FilaPedido({ o, p, r, margen, desvMat, M, K, abierto, onClick, materiales, supabase, avisar, recargar }) {
   const sug = K.precioSugerido(p.unitario);
   return (
     <>
       <tr className="click" onClick={onClick} aria-expanded={abierto}>
-        <td className="mono">{o.codigo}</td>
+        <td className="mono">{o.codigo} <span className="small muted">{abierto ? '▾' : '▸'}</span></td>
         <td>{o.cliente}{p.faltantes.length ? <span className="pill amarillo" style={{ marginLeft: 6 }}>incompleto</span> : null}</td>
         <td className="r">{nf.format(o.cantidad)}</td>
         <td className="r">{o.monto ? usd0.format(o.monto) : '—'}</td>
@@ -95,12 +97,14 @@ function FilaPedido({ o, p, r, margen, desvMat, M, K, abierto, onClick, material
                   {r.externo > 0 && <tr><td>Bordado externo recibido</td><td></td><td className="r">{usd.format(r.externo)}</td></tr>}
                   <tr><td>Mano de obra de las piezas registradas</td><td></td><td className="r">{usd.format(r.manoObra)}</td></tr>
                   <tr><td>Gastos indirectos</td><td></td><td className="r">{usd.format(r.indirectos)}</td></tr>
+                  {r.adicional > 0 && <tr><td>Costos adicionales ({r.adicionales.length})</td><td></td><td className="r">{usd.format(r.adicional)}</td></tr>}
                   <tr><td><b>Total a la fecha</b></td><td></td><td className="r"><b>{usd.format(r.total)}</b></td></tr>
                 </tbody>
               </table>
               <p className="small muted" style={{ marginBottom: 0 }}>Entrega comprometida: {fd(parseDay(o.fechaCompromiso))}. <a href={'/informe/' + o.id} target="_blank" rel="noreferrer" style={{ color: 'var(--ink)' }}>Ver informe de producción</a></p>
             </div>
           </div>
+          <EditorCostos supabase={supabase} o={o} materiales={materiales} salidas={r.salidas} extras={r.adicionales} avisar={avisar} recargar={recargar} />
         </td></tr>
       )}
     </>

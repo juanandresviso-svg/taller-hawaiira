@@ -9,6 +9,8 @@ import { verOC } from '@/lib/oc';
 import { usd } from '@/lib/costos';
 import OCLector from './OCLector';
 import EnviarOP from './EnviarOP';
+import { codigoProducto, numeroSiguiente, OBSERVACIONES_BASE, PAGO_BASE } from '@/lib/formatoCotizacion';
+import { isoDay } from '@/lib/motor';
 import { revisarNovedades } from '@/lib/avisos';
 import { pasosDe, cotizacionDe } from '@/lib/proceso';
 import Seguimiento from './Seguimiento';
@@ -21,7 +23,7 @@ function nuevoCodigo(ordenes) {
   return 'OP-' + String(m + 1).padStart(4, '0');
 }
 
-export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materiales, consumos, veMateriales, veCostos, cotizaciones, hitos = [], documentos = [], clientes = [], registros = [], config, avisar, recargar }) {
+export default function Pedidos({ supabase, perfil, M, K, ordenes, perfiles, materiales, consumos, veMateriales, veCostos, cotizaciones = [], hitos = [], documentos = [], clientes = [], registros = [], config, avisar, recargar }) {
   const [filtro, setFiltro] = useState('activos');
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
@@ -35,6 +37,30 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
   const [enviando, setEnviando] = useState(null);   // { id, reenviar }: panel de enviar la orden de producción
   const ctxEquipo = { M, perfiles, registros, config };
   const puede = EDITAN.includes(perfil.rol);
+  const cotDe = (o) => (o.cotizacionId ? cotizaciones.find((c) => c.id === o.cotizacionId) || null : null);
+
+  // Paso 1 del pedido: generar su cotización (con el formato de Hawaiira Studio) a partir de los datos del pedido
+  async function generarCotizacion(o) {
+    if (!K) return avisar('Solo Dirección, jefe de taller y Administración pueden generar cotizaciones.');
+    const ventana = window.open('', '_blank');
+    const E = K.C.empresa || {};
+    const pres = K.presupuesto(o);
+    const precio = o.monto && o.cantidad ? Math.round((o.monto / o.cantidad) * 100) / 100 : Math.ceil(K.precioSugerido(pres.unitario) * 20) / 20;
+    const item = { producto: o.producto, codigo: codigoProducto(o.producto, M.cfg.productos), nombre: M.prod(o).nombre, descripcion: [M.prod(o).nombre, decoTexto(o.deco)].join(' ').trim(), cantidad: o.cantidad, tallas: o.tallas || '', deco: o.deco, precio, costo: Math.round(pres.unitario * 100) / 100, manual: true };
+    const v = new Date(M.t0); v.setDate(v.getDate() + (+K.C.validezDias || 15));
+    setBusy(true);
+    const { data, error } = await supabase.from('cotizaciones').insert({
+      numero: numeroSiguiente(cotizaciones.map((c) => c.numero), E.proximaCotizacion), cliente: o.cliente, contacto: '', items: [item],
+      notas: E.observaciones || OBSERVACIONES_BASE, metodo_pago: E.metodoPago || PAGO_BASE, fecha_entrega: o.fechaCompromiso || null,
+      validez: isoDay(v), total: Math.round(o.cantidad * precio * 100) / 100, estado: 'enviada', ordenes: [o.codigo],
+    }).select('id, numero').single();
+    if (!error) await supabase.from('ordenes').update({ cotizacion_id: data.id, ...(o.monto ? {} : { monto: Math.round(o.cantidad * precio * 100) / 100 }) }).eq('id', o.id);
+    setBusy(false);
+    if (error) { if (ventana) ventana.close(); return avisar('No se pudo generar la cotización: ' + error.message); }
+    if (ventana) ventana.location.href = '/cotizacion/' + data.id;
+    avisar(`Cotización ${data.numero} generada para ${o.codigo}. Edítala en Costos → Cotizaciones si hace falta; cuando el cliente la acepte, envía la orden de producción.`);
+    recargar.cotizaciones && recargar.cotizaciones(); recargar.ordenes(); revisarNovedades();
+  }
 
   // Seguimiento del flujo de cada pedido (pasos cumplidos, próximo paso y documentos en Drive)
   const hitosDe = {}, hitosCotDe = {}, docsDe = {};
@@ -211,8 +237,13 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                     {o.ocArchivo && <button className="btn sm" onClick={async () => { const e = await verOC(supabase, o.ocArchivo); if (e) avisar('No se pudo abrir la OC: ' + e); }}>Ver OC</button>}
                   </div>
                 )}
-                {esp && !(enviando && enviando.id === o.id) && <div className="oc"><span className="falta">Falta enviar la orden de producción: el pedido no entra en el plan del taller.</span>{puede && <button className="btn sm primary" onClick={() => setEnviando({ id: o.id, reenviar: false })}>Enviar orden de producción</button>}</div>}
-                {enviando && enviando.id === o.id && <EnviarOP o={o} supabase={supabase} perfil={perfil} M={M} perfiles={perfiles} registros={registros} config={config} avisar={avisar} recargar={recargar} reenviar={enviando.reenviar} onClose={() => setEnviando(null)} />}
+                {o.cotizacionId && (() => { const c = cotDe(o); return <div className="oc"><span>Cotización{c ? <> <b>{c.numero}</b> · {c.estado}</> : ' generada'}</span>{c && <a className="btn sm" href={'/cotizacion/' + c.id} target="_blank" rel="noreferrer">Ver cotización</a>}</div>; })()}
+                {esp && !(enviando && enviando.id === o.id) && (
+                  !o.cotizacionId
+                    ? <div className="oc"><span className="falta">Paso 1: generar la cotización. Paso 2: enviar la orden de producción.</span>{veCostos ? <button className="btn sm primary" disabled={busy} onClick={() => generarCotizacion(o)}>Generar cotización</button> : <span className="small muted">Pídela a Administración o Dirección.</span>}{perfil.rol === 'direccion' && <button className="btn sm" onClick={() => setEnviando({ id: o.id, reenviar: false })}>Enviar OP sin cotización</button>}</div>
+                    : <div className="oc"><span className="falta">Falta enviar la orden de producción: el pedido no entra en el plan del taller.</span>{puede && <button className="btn sm primary" onClick={() => setEnviando({ id: o.id, reenviar: false })}>Enviar orden de producción</button>}</div>
+                )}
+                {enviando && enviando.id === o.id && <EnviarOP o={o} cot={cotDe(o)} supabase={supabase} perfil={perfil} M={M} perfiles={perfiles} registros={registros} config={config} avisar={avisar} recargar={recargar} reenviar={enviando.reenviar} onClose={() => setEnviando(null)} />}
                 <div className="flags">
                   {!ent && [['arteAprobado', 'arte_aprobado', 'Arte aprobado', r.includes('preprensa')], ['materialListo', 'material_listo', 'Material listo', true], ['anticipo', 'anticipo', 'Anticipo', true]].filter((x) => x[3]).map(([k, col, l]) => (
                     <button key={k} className={'flag ' + (o[k] ? 'yes' : 'no')} disabled={!puede || busy} aria-pressed={!!o[k]}
@@ -243,7 +274,7 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                     </div>
                   )}
                 </div>
-                <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} ctx={ctxEquipo} onEnviarOP={puede ? (reenviar) => setEnviando({ id: o.id, reenviar }) : null} />
+                <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} ctx={ctxEquipo} onEnviarOP={puede && (o.cotizacionId || perfil.rol === 'direccion' || o.estado !== 'espera') ? (reenviar) => setEnviando({ id: o.id, reenviar }) : null} />
                 {salida === o.id && <Salida supabase={supabase} orden={o} materiales={materiales} consumos={consumos} avisar={avisar} onClose={() => setSalida(null)} puedeBorrar={['direccion', 'jefa', 'admin'].includes(perfil.rol)} />}
               </article>
             );

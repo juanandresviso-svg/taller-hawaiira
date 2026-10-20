@@ -156,6 +156,7 @@ Cada vez que salga material del almacén para un pedido (tela, hilo, etiquetas, 
 
 ## Del pedido a la orden de producción
 
+0. **Pedido creado primero** (Nuevo pedido o Nuevo pedido desde OC): el primer paso es **Generar cotización** en el pedido; la app arma la cotización con los datos del pedido y el formato del taller. Cuando el cliente la acepta, sigue con **Enviar orden de producción** (al enviarla, la cotización queda aprobada).
 1. **Cotización aprobada** (Costos → Cotizaciones → *Aprobada → crear pedidos*): elige la fecha comprometida y, si ya la tienes, pulsa **Adjuntar y leer la orden de compra**. Se crean los pedidos, que quedan en **Pedidos → Por enviar OP**.
 2. **Pedido sin cotización**: **Nuevo pedido desde OC** (sube la OC y la app llena cliente, unidades, monto, fecha y tallas) o **Nuevo pedido** (a mano).
 3. **Enviar orden de producción** (botón en el pedido):
@@ -213,6 +214,14 @@ Cada pedido y cotización queda ligado a su cliente automáticamente (el nombre 
 Lista de máquinas de cada etapa con su cantidad. "Solo para" limita una máquina a ciertos productos o estampados (por ejemplo, la ojaladora solo para chemises). Con esta lista y las personas de cada estación (Usuarios) se arma el equipo sugerido.
 
 ## Costos (dirección, jefe de taller y administración)
+
+### Editar y agregar costos de un pedido
+
+**Costos → Costo por pedido** → toca el pedido. Debajo del presupuesto y del costo real puedes:
+- Cambiar la **venta** del pedido.
+- Corregir la cantidad o el precio de una **salida de material** (el stock se ajusta solo), quitarla o **agregar una salida** nueva.
+- **Agregar costos adicionales**: transporte y envío, servicios de terceros (bordado, estampado o confección externa), material comprado aparte, horas extra u otros. Cada uno con fecha, monto y nota, y se puede editar o quitar.
+Todo entra en el costo real, en el margen y en el informe de cierre.
 
 ### Generar una cotización
 

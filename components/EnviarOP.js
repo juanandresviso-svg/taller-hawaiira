@@ -38,7 +38,7 @@ export function useEquipo(o, { M, perfiles, registros, config }) {
 }
 
 // Enviar la orden de producción al taller (después de aprobar la cotización)
-export default function EnviarOP({ o, supabase, perfil, M, perfiles, registros, config, avisar, recargar, onClose, reenviar = false }) {
+export default function EnviarOP({ o, cot = null, supabase, perfil, M, perfiles, registros, config, avisar, recargar, onClose, reenviar = false }) {
   const [oc, setOc] = useState(null);          // OC leída y revisada (se guarda al enviar)
   const [cambiarOC, setCambiarOC] = useState(!o.ocArchivo && !o.ocNumero && !reenviar);
   const [sinOC, setSinOC] = useState(false);
@@ -68,6 +68,8 @@ export default function EnviarOP({ o, supabase, perfil, M, perfiles, registros, 
       const upd = { ...(oc ? { ...oc.campos, ...colAplicar(oc.aplicar) } : {}), estado: 'activo', activado: o.activado || ahora, op_enviada: ahora, op_enviada_por: perfil.id };
       const { error } = await supabase.from('ordenes').update(upd).eq('id', o.id);
       if (error) { setBusy(false); return setErr('No se pudo guardar: ' + error.message); }
+      // Enviar la orden de producción confirma que el cliente aceptó la cotización
+      if (cot && cot.estado !== 'aprobada') await supabase.from('cotizaciones').update({ estado: 'aprobada', fecha_entrega: cot.fecha_entrega || o.fechaCompromiso }).eq('id', cot.id);
     }
     let r = null;
     try {
@@ -107,6 +109,12 @@ export default function EnviarOP({ o, supabase, perfil, M, perfiles, registros, 
       <b>{reenviar ? 'Reenviar' : 'Enviar'} la orden de producción · {o.codigo}</b>
       <p className="small muted" style={{ margin: '4px 0 10px' }}>{reenviar ? 'Vuelve a avisar al taller y a compartir la orden.' : 'La orden de producción entra en el plan del taller, se guarda en PDF en Google Drive y se avisa al jefe de taller, a compras y al dueño del pedido.'}</p>
 
+      {!reenviar && (
+        <section>
+          <h4>Cotización</h4>
+          <p className="small" style={{ margin: 0 }}>{cot ? <>Cotización <b>{cot.numero}</b> · {cot.estado === 'aprobada' ? 'aprobada' : `${cot.estado}: al enviar la orden de producción queda aprobada`} · <a href={'/cotizacion/' + cot.id} target="_blank" rel="noreferrer">Ver</a></> : o.cotizacionId ? 'Cotización generada.' : <span style={{ color: 'var(--warn)' }}>Sin cotización (envío autorizado por Dirección).</span>}</p>
+        </section>
+      )}
       {!reenviar && (
         <section>
           <h4>Orden de compra del cliente</h4>

@@ -242,7 +242,8 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                   <span className="acts">
                     {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm" onClick={() => { setErr(''); const cl = clientes.find((x) => x.id === c.cliente_id) || {}; setDraft({ ...structuredClone(c), rif: cl.rif || '', direccion: cl.direccion || '', telefono: cl.telefono || '', metodo_pago: c.metodo_pago || PAGO_BASE, fecha_entrega: c.fecha_entrega || '', items: c.items.map((i) => ({ ...i, codigo: i.codigo || codigoProducto(i.producto, M.cfg.productos), precio: i.precio, manual: true })) }); window.scrollTo(0, 0); }}>Editar</button>}
                     {c.estado === 'borrador' && <button className="btn sm" onClick={() => estado(c, 'enviada')}>Marcar enviada</button>}
-                    {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm primary" onClick={() => { setAprobar(c.id); setFechaAprob(c.fecha_entrega || ''); }}>Aprobada → crear pedidos</button>}
+                    {['borrador', 'enviada'].includes(c.estado) && !(c.ordenes || []).length && <button className="btn sm primary" onClick={() => { setAprobar(c.id); setFechaAprob(c.fecha_entrega || ''); }}>Aprobada → crear pedidos</button>}
+                    {['borrador', 'enviada'].includes(c.estado) && (c.ordenes || []).length > 0 && <button className="btn sm primary" onClick={() => estado(c, 'aprobada')}>Aprobada (pedido {c.ordenes.join(', ')})</button>}
                     {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm" onClick={() => estado(c, 'rechazada')}>Rechazada</button>}
                     {c.estado !== 'aprobada' && <button className="btn sm danger" onClick={() => setConfirm(c.id)}>Eliminar</button>}
                   </span>

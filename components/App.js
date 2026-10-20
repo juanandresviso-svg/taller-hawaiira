@@ -61,6 +61,7 @@ export default function App({ perfil, cliente }) {
   const [consumos, setConsumos] = useState([]);
   const [costosCfg, setCostosCfg] = useState(null);
   const [cotizaciones, setCotizaciones] = useState([]);
+  const [costosPedido, setCostosPedido] = useState([]);
   const [hitos, setHitos] = useState([]);
   const [documentos, setDocumentos] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -102,6 +103,7 @@ export default function App({ perfil, cliente }) {
     ...(veCostos ? {
       costos: async () => { const { data } = await supabase.from('costos_config').select('data').eq('id', 1).single(); setCostosCfg(data?.data || null); },
       cotizaciones: async () => { const { data } = await supabase.from('cotizaciones').select('*').order('creado', { ascending: false }); setCotizaciones(data || []); },
+      costosPedido: async () => { const { data } = await supabase.from('costos_pedido').select('*').order('fecha', { ascending: false }); setCostosPedido(data || []); },
     } : {}),
   }), [supabase, veMateriales, veCostos]);
 
@@ -131,7 +133,8 @@ export default function App({ perfil, cliente }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'consumos' }, () => refrescar('consumos'));
     if (veCostos) canal
       .on('postgres_changes', { event: '*', schema: 'public', table: 'costos_config' }, () => refrescar('costos'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cotizaciones' }, () => refrescar('cotizaciones'));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cotizaciones' }, () => refrescar('cotizaciones'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'costos_pedido' }, () => refrescar('costosPedido'));
     canal.subscribe((s) => setLive(s === 'SUBSCRIBED'));
     // Al volver a la app después de un rato, refresca todo
     const vis = () => { if (document.visibilityState === 'visible') Object.values(cargar).forEach((f) => f()); };
@@ -172,7 +175,7 @@ export default function App({ perfil, cliente }) {
 
   const cambiarTab = (t) => { setTab(t); try { localStorage.setItem('tab', t); } catch {} window.scrollTo(0, 0); };
   const K = useMemo(() => (veCostos ? crearCostos({ M, cc: costosCfg, materiales }) : null), [veCostos, M, costosCfg, materiales]);
-  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, hitos, documentos, clientes, veMateriales, veCostos, avisar, recargar: cargar };
+  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, costosPedido, hitos, documentos, clientes, veMateriales, veCostos, avisar, recargar: cargar };
 
   return (
     <>

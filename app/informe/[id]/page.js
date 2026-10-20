@@ -44,10 +44,11 @@ export default async function Informe({ params }) {
   const R = regs || [];
 
   // Costos, solo si la persona tiene acceso
-  const [{ data: cc }, { data: mats }, { data: cons }] = await Promise.all([
+  const [{ data: cc }, { data: mats }, { data: cons }, { data: extras }] = await Promise.all([
     supabase.from('costos_config').select('data').eq('id', 1).maybeSingle(),
     supabase.from('materiales').select('*'),
     supabase.from('consumos').select('*').eq('orden_id', id),
+    supabase.from('costos_pedido').select('*').eq('orden_id', id),
   ]);
   const K = cc ? crearCostos({ M, cc: cc.data, materiales: mats || [] }) : null;
 
@@ -88,7 +89,7 @@ export default async function Informe({ params }) {
   const comp = parseDay(o.fechaCompromiso);
   const atraso = o.estado === 'entregado' && o.entregado ? (isoDay(new Date(o.entregado)) > o.fechaCompromiso ? diasHabiles(comp, new Date(o.entregado)) : 0) : null;
   const porPersona = Object.values(R.reduce((acc, r) => { const k = r.persona_id; acc[k] = acc[k] || { nombre: nombre(k), etapas: new Set(), piezas: 0, min: 0 }; acc[k].etapas.add(STAGE_NAME[r.etapa]); acc[k].piezas += r.cantidad; acc[k].min += +r.minutos || 0; return acc; }, {})).sort((a, b) => b.piezas - a.piezas);
-  const pres = K ? K.presupuesto(o) : null, real = K ? K.real(o, cons || []) : null;
+  const pres = K ? K.presupuesto(o) : null, real = K ? K.real(o, cons || [], extras || []) : null;
 
   return (
     <main className="cot">
@@ -155,6 +156,7 @@ export default async function Informe({ params }) {
                 <tr><td>Mano de obra</td><td className="r">{usd.format(pres.manoObra)}</td><td className="r">{usd.format(real.manoObra)}</td></tr>
                 {pres.externo > 0 && <tr><td>Bordado externo</td><td className="r">{usd.format(pres.externo)}</td><td className="r">{usd.format(real.externo)}</td></tr>}
                 <tr><td>Indirectos</td><td className="r">{usd.format(pres.indirectos)}</td><td className="r">{usd.format(real.indirectos)}</td></tr>
+                {real.adicionales.map((x) => <tr key={x.id}><td>{x.concepto}</td><td className="r">—</td><td className="r">{usd.format(+x.monto || 0)}</td></tr>)}
               </tbody>
               <tfoot><tr><td>Total</td><td className="r"><b>{usd.format(pres.total)}</b></td><td className="r"><b>{usd.format(real.total)}</b></td></tr></tfoot>
             </table>
