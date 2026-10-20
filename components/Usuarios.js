@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { ROLES, POOLS, POOL_NAME } from '@/lib/motor';
+import Enlaces from './Enlaces';
 
 const VACIO = { nombre: '', email: '', rol: 'operador', estacion: 'costura' };
 
@@ -33,7 +34,7 @@ export default function Usuarios({ supabase, perfil, perfiles, avisar, recargar 
 
   return (
     <>
-      <h2>Invitar a una persona</h2>
+      <h2>Invitar a una persona por correo</h2>
       <form className="card" onSubmit={invitar} noValidate data-tour="invitar">
         <div className="fgrid">
           <label className="f">Nombre<input id="u-nombre" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} /></label>
@@ -56,6 +57,8 @@ export default function Usuarios({ supabase, perfil, perfiles, avisar, recargar 
           <span className="small muted">Le llegará un correo para crear su contraseña.</span>
         </div>
       </form>
+
+      <Enlaces supabase={supabase} perfiles={perfiles} avisar={avisar} />
 
       <h2>Equipo ({activos.length})</h2>
       <p className="small muted" style={{ marginTop: -4 }}>La estación define la capacidad del taller. Producción solo ve "Mi trabajo". Dirección puede todo; Jefe(a) de taller además edita los ajustes y corrige registros.</p>

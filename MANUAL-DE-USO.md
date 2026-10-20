@@ -221,6 +221,7 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 
 ### Solo para dirección: Usuarios
 
+- **Enlaces de invitación por rol:** elige rol, estación, vencimiento y (si quieres) máximo de registros → **Crear enlace**. O pulsa **Crear un enlace para cada rol** para tener de una vez uno por rol y uno por estación de producción. Mándalo con **Copiar** o **WhatsApp**. Quien lo abre escribe nombre, correo y contraseña y entra directo con ese rol; te llega una notificación. **Desactivar** lo anula al instante. Un enlace de Dirección sirve para una sola persona.
 - **Invitar:** nombre, correo, rol y estación → **Enviar invitación**.
 - **Cambiar rol o estación:** directo en la lista. La estación define la capacidad del taller.
 - **Desactivar:** cuando alguien deja el taller. Su historial se conserva y se puede **Reactivar**.

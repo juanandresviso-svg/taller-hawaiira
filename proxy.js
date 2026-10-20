@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const PUBLICAS = ['/login', '/auth', '/api/cron', '/api/version', '/manifest.webmanifest', '/sw.js', '/icons', '/logo.svg', '/icon.png'];
+const PUBLICAS = ['/login', '/auth', '/api/cron', '/api/version', '/registro', '/api/registro', '/manifest.webmanifest', '/sw.js', '/icons', '/logo.svg', '/icon.png'];
 
 function faltaConfig(detalle) {
   const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

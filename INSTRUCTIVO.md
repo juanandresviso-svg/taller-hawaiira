@@ -94,6 +94,7 @@ Guarda:
 5. Repite los pasos 1 a 4 con el archivo `supabase/migracion-02-costos.sql` (agrega bordado, materiales, costos y cotizaciones).
 6. Repite los pasos 1 a 4 con `supabase/migracion-03-tiempos.sql` (medición de tiempos reales, aprendizaje e informe de producción).
 7. Repite los pasos 1 a 4 con `supabase/migracion-04-avisos-oc.sql` (notificaciones push y orden de compra del cliente; crea también la carpeta privada `ordenes-compra` en **Storage**).
+8. Repite los pasos 1 a 4 con `supabase/migracion-05-enlaces.sql` (enlaces de invitación por rol).
 
 > Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 
@@ -274,6 +275,8 @@ where email = 'tu-correo@ejemplo.com';
 ## 6. Invitar al equipo
 
 En la app → **Usuarios → Invitar a una persona**. Llena nombre, correo, rol y estación → **Enviar invitación**. A cada persona le llega un correo desde el Gmail del taller; pulsa **Crear mi contraseña** y queda dentro.
+
+**Más rápido: enlaces por rol.** En **Usuarios → Enlaces de invitación por rol** pulsa **Crear un enlace para cada rol**. Se crea un enlace distinto para jefe de taller, administración, compras, diseño y cada estación de producción. Manda a cada persona el de su rol (botón **WhatsApp** o **Copiar**). Al abrirlo escribe nombre, correo y contraseña y entra directo, sin esperar correos. Te llega una notificación por cada registro. Si un enlace se filtra, pulsa **Desactivar**.
 
 | Persona | Rol | Estación |
 |---|---|---|
