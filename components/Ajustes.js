@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { cfgBase, estimarProducto, ETAPAS_PROD } from '@/lib/aprendizaje';
 import { nf, nf1 } from '@/lib/motor';
+import { GenerarClaves } from './Avisos';
 
 const ETAPA_NOMBRE = { corte: 'Corte', costura: 'Costura', empaque: 'Empaque y revisión' };
 
@@ -18,7 +19,7 @@ function Resultado({ d, unidad = 'min/pza' }) {
   );
 }
 
-export default function Ajustes({ supabase, config, A, avisar }) {
+export default function Ajustes({ supabase, perfil, config, A, avisar }) {
   const [c, setC] = useState(() => structuredClone(cfgBase(config)));
   const [busy, setBusy] = useState(false);
   const [nuevo, setNuevo] = useState('');
@@ -106,6 +107,16 @@ export default function Ajustes({ supabase, config, A, avisar }) {
         </div>
         <p className="small muted" style={{ marginBottom: 0 }}>Para que el resultado sea fiel, el equipo debe registrar cada paquete apenas lo termina (o usar Empezar). El detalle de cada pedido está en su Informe de producción.</p>
       </div>
+
+      {perfil && perfil.rol === 'direccion' && (
+        <>
+          <h2>Notificaciones push</h2>
+          <div className="panel" data-tour="claves">
+            <p className="small muted" style={{ marginTop: 0 }}>Para que las notificaciones lleguen aunque la app esté cerrada, el servidor necesita un par de claves propias del taller. Se configuran una sola vez (instructivo, paso 4.5).</p>
+            <GenerarClaves />
+          </div>
+        </>
+      )}
     </>
   );
 }

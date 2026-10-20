@@ -37,7 +37,8 @@ async function generarClaves() {
   const jwk = await crypto.subtle.exportKey('jwk', par.privateKey);
   return { publica: b64, privada: jwk.d };
 }
-function GenerarClaves() {
+export const CLAVES_LISTAS = !!CLAVE;
+export function GenerarClaves() {
   const [k, setK] = useState(null);
   const fila = (n, v) => (
     <div style={{ marginTop: 8 }}>
@@ -47,7 +48,8 @@ function GenerarClaves() {
   );
   return (
     <div className="subcard" style={{ marginTop: 10 }}>
-      <b className="small">Falta configurar las notificaciones (solo una vez)</b>
+      <b className="small">{CLAVE ? 'Claves de notificaciones: ya configuradas' : 'Falta configurar las notificaciones (solo una vez)'}</b>
+      {CLAVE && <p className="small" style={{ color: 'var(--warn)' }}>Solo genera claves nuevas si sabes que hace falta: al cambiarlas, todos tienen que volver a activar las notificaciones.</p>}
       <p className="small muted">Genera las claves aquí, cópialas en Vercel → Settings → Environment Variables y vuelve a desplegar (Redeploy). Detalle en el paso 4.5 del instructivo.</p>
       {k ? <>{fila('NEXT_PUBLIC_VAPID_PUBLIC_KEY', k.publica)}{fila('VAPID_PRIVATE_KEY', k.privada)}<p className="small" style={{ color: 'var(--warn)', marginBottom: 0 }}>Copia las dos antes de cerrar este panel: no se guardan en ningún lado. La privada no se comparte con nadie.</p></>
         : <button className="btn sm primary" type="button" onClick={async () => setK(await generarClaves())}>Generar claves</button>}
@@ -121,6 +123,9 @@ export default function Avisos({ supabase, perfil, avisar, onClose }) {
         <h3 id="avisos-t" style={{ marginTop: 0 }}>Notificaciones</h3>
         <p className="small muted">Te avisan de las novedades del taller aunque la app esté cerrada. Se activan en cada dispositivo por separado (computadora, teléfono).</p>
 
+        {!CLAVE && (['direccion', 'jefa'].includes(perfil.rol)
+          ? <div style={{ marginBottom: 12 }}><GenerarClaves /></div>
+          : <p className="small" style={{ color: 'var(--warn)' }}>Dirección todavía no termina de configurar las notificaciones. Vuelve a intentar más tarde.</p>)}
         <div className="subcard">
           {!soportado ? (
             <p className="small" style={{ margin: 0 }}>Este navegador no permite notificaciones.{ios ? ' En iPhone: abre la app en Safari, toca Compartir → "Agregar a inicio", ábrela desde el ícono y activa aquí.' : ' Usa Chrome o Edge.'}</p>
@@ -134,7 +139,6 @@ export default function Avisos({ supabase, perfil, avisar, onClose }) {
                 : <button className="btn sm primary" disabled={busy} onClick={activar}>Activar en este dispositivo</button>}
             </div>
           )}
-          {!CLAVE && perfil.rol === 'direccion' && <GenerarClaves />}
           {soportado && ios && !instalada && <p className="small muted" style={{ marginBottom: 0 }}>En iPhone solo funcionan con la app agregada a la pantalla de inicio.</p>}
         </div>
 
