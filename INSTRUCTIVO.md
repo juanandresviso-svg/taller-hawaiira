@@ -283,8 +283,17 @@ Se usa el **Gmail del taller** (paso 1). La app pide el permiso más limitado de
    - Público: **Externo**.
    - Información de contacto: el Gmail del taller → acepta y **Crear**.
 4. **Acceso a los datos → Agregar o quitar permisos**: marca `.../auth/drive.file` ("Ver, editar, crear y borrar solo los archivos de Google Drive que uses con esta app") → **Actualizar** → **Guardar**.
-5. **Público → Publicar app → Confirmar**. Importante: si la app queda en modo *Prueba*, Google corta el permiso cada 7 días y la exportación se detiene.
-6. **Clientes → Crear cliente**:
+5. **Desarrollo de la marca** (*Branding*): Google exige estos datos para poder publicar.
+   - Nombre de la app: `Taller Hawaiira` (igual al título de la página principal).
+   - Logotipo: **déjalo vacío**. Subir un logo obliga a una revisión de Google que tarda semanas.
+   - Página principal de la aplicación: tu dirección + `/acerca`, por ejemplo `https://taller-hawaiira-v5ho.vercel.app/acerca`
+   - Vínculo a la política de privacidad: tu dirección + `/privacidad`
+   - Condiciones del servicio: puedes dejarlo vacío.
+   - **Dominios autorizados → Agregar dominio**: tu dirección sin `https://`, por ejemplo `taller-hawaiira-v5ho.vercel.app`
+   - Correo de contacto del desarrollador: el Gmail del taller → **Guardar**.
+   Antes, publica en Vercel la versión que trae las páginas `/acerca` y `/privacidad` y ábrelas en una ventana de incógnito para comprobar que se ven sin iniciar sesión.
+6. **Público → Publicar app → Confirmar**. Importante: si la app queda en modo *Prueba*, Google corta el permiso cada 7 días y la exportación se detiene.
+7. **Clientes → Crear cliente**:
    - Tipo de aplicación: **Aplicación web** · Nombre: `App del taller`.
    - **URIs de redireccionamiento autorizados → Agregar URI**: tu dirección + `/api/drive/callback`, por ejemplo `https://taller-hawaiira-v5ho.vercel.app/api/drive/callback`. (La app la muestra exacta en **Ajustes → Google Drive**, con botón **Copiar**.)
    - **Crear**. Copia el **ID de cliente** y el **Secreto del cliente**.
@@ -391,8 +400,9 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | Error al subir la orden de compra | No se corrió la migración 04 | Corre `supabase/migracion-04-avisos-oc.sql` (paso 3.2). |
 | No aparece el seguimiento en los pedidos | No se corrió la migración 06 | Corre `supabase/migracion-06-seguimiento-drive.sql` (paso 3.2). |
 | Ajustes → Google Drive dice "Falta configurar" | Faltan `GOOGLE_CLIENT_ID` o `GOOGLE_CLIENT_SECRET`, o no se redesplegó | Revisa el paso 4.6 B y pulsa **Redeploy**. |
-| Google dice `redirect_uri_mismatch` al conectar | La dirección de regreso no es idéntica a la registrada | Copia la que muestra **Ajustes → Google Drive** y pégala en Google Cloud → Clientes → URIs de redireccionamiento (paso 4.6 A.6). |
-| "Google revocó o venció el permiso" | La app de Google quedó en modo Prueba (7 días) o se quitó el acceso | Publica la app (paso 4.6 A.5) y vuelve a pulsar **Conectar Google Drive**. |
+| Google no deja publicar: "OAuth configuration is incomplete… Branding page" | Faltan página principal, política de privacidad o dominio autorizado | Completa **Desarrollo de la marca** (paso 4.6 A.5) con `/acerca`, `/privacidad` y el dominio de Vercel, sin logo. |
+| Google dice `redirect_uri_mismatch` al conectar | La dirección de regreso no es idéntica a la registrada | Copia la que muestra **Ajustes → Google Drive** y pégala en Google Cloud → Clientes → URIs de redireccionamiento (paso 4.6 A.7). |
+| "Google revocó o venció el permiso" | La app de Google quedó en modo Prueba (7 días) o se quitó el acceso | Publica la app (paso 4.6 A.6) y vuelve a pulsar **Conectar Google Drive**. |
 | Un documento dice "no se pudo guardar en Drive" | Falló la subida (red o permiso) | La app reintenta sola hasta 5 veces. El detalle está en **Ajustes → Google Drive → Documentos con error**. |
 | Borré la carpeta en Drive por error | — | Sácala de la papelera de Drive. Si ya no está, pulsa **Sincronizar ahora**: la app la vuelve a armar completa. |
 | Supabase pausó el proyecto | En el plan gratuito se pausa tras 7 días sin uso | El resumen diario lo mantiene activo. Si pasa, pulsa **Restore**. |

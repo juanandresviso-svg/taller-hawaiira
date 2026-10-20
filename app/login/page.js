@@ -59,6 +59,7 @@ export default function Login() {
           </button>
         </form>
         <p>¿No tienes acceso? Pídele una invitación a dirección.</p>
+        <p className="small"><a href="/acerca">Acerca de Taller Hawaiira</a> · <a href="/privacidad">Privacidad</a></p>
       </div>
     </main>
   );

@@ -284,3 +284,17 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); 
 .copiar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
 .copiar code { flex: 1 1 200px; min-width: 0; }
 @media (max-width: 640px) { .fases li span { font-size: 10px; } .paso { grid-template-columns: 20px minmax(0, 1fr); } .paso .ac { grid-column: 2; } }
+
+/* Páginas públicas (Acerca y Privacidad) */
+.legal { max-width: 720px; margin: 0 auto; padding-block: 40px 24px; }
+.legal-logo { width: 200px; display: block; margin-bottom: 20px; }
+.legal h1 { font-size: 26px; line-height: 1.2; margin: 0 0 8px; text-wrap: balance; }
+.legal h2 { font-size: 17px; margin: 26px 0 6px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.legal p, .legal li { color: var(--muted); max-width: 68ch; }
+.legal .lead { font-size: 16px; color: var(--ink); }
+.legal ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.legal a { color: var(--info); }
+.legal .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
+.legal .links .btn { color: var(--ink); }
+.legal .links .btn.primary { color: var(--primary-ink); }
+.legal footer { margin-top: 40px; font-size: 12px; color: var(--faint); }
