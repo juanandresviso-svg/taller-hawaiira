@@ -9,6 +9,7 @@ import Ajustes from './Ajustes';
 import Usuarios from './Usuarios';
 import Tutorial from './Tutorial';
 import { pasosTutorial } from '@/lib/tutorial';
+import { aprender } from '@/lib/aprendizaje';
 import Costos from './Costos';
 import Materiales from './Materiales';
 import { crearCostos, COSTO_ROLES, MATERIAL_ROLES } from '@/lib/costos';
@@ -40,6 +41,7 @@ export default function App({ perfil, cliente }) {
   const [perfiles, setPerfiles] = useState([]);
   const [registros, setRegistros] = useState([]);
   const [historial, setHistorial] = useState({});
+  const [tiempos, setTiempos] = useState([]);
   const [materiales, setMateriales] = useState([]);
   const [consumos, setConsumos] = useState([]);
   const [costosCfg, setCostosCfg] = useState(null);
@@ -66,6 +68,7 @@ export default function App({ perfil, cliente }) {
       const { data } = await supabase.from('registros').select('*').gte('dia', isoDay(desde)).order('ts', { ascending: false }).limit(5000);
       setRegistros(data || []);
     },
+    tiempos: async () => { const { data } = await supabase.from('v_tiempos').select('*'); setTiempos(data || []); },
     historial: async () => { const { data } = await supabase.from('historial').select('*'); setHistorial(Object.fromEntries((data || []).map((h) => [h.semana, h]))); },
     ...(veMateriales ? {
       materiales: async () => { const { data } = await supabase.from('materiales').select('*').order('categoria').order('nombre'); setMateriales(data || []); },
@@ -84,7 +87,7 @@ export default function App({ perfil, cliente }) {
     const refrescar = (tabla) => { clearTimeout(timers[tabla]); timers[tabla] = setTimeout(() => cargar[tabla](), 250); };
     const canal = supabase.channel('taller')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes' }, () => refrescar('ordenes'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registros' }, () => refrescar('registros'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registros' }, () => { refrescar('registros'); refrescar('tiempos'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => refrescar('config'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => refrescar('perfiles'));
     if (veMateriales) canal
@@ -113,11 +116,12 @@ export default function App({ perfil, cliente }) {
   const pasos = useMemo(() => pasosTutorial(perfil), [perfil]);
   const setTabTour = useCallback((t) => setTab(t), []);
 
-  const M = useMemo(() => crearMotor({ config, ordenes, perfiles, historial }), [config, ordenes, perfiles, historial]);
+  const A = useMemo(() => aprender(config, tiempos), [config, tiempos]);
+  const M = useMemo(() => crearMotor({ config: A.efectivo, ordenes, perfiles, historial }), [A, ordenes, perfiles, historial]);
 
   const cambiarTab = (t) => { setTab(t); try { localStorage.setItem('tab', t); } catch {} window.scrollTo(0, 0); };
   const K = useMemo(() => (veCostos ? crearCostos({ M, cc: costosCfg, materiales }) : null), [veCostos, M, costosCfg, materiales]);
-  const ctx = { supabase, perfil, M, K, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, veMateriales, veCostos, avisar, recargar: cargar };
+  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, veMateriales, veCostos, avisar, recargar: cargar };
 
   return (
     <>
@@ -143,8 +147,8 @@ export default function App({ perfil, cliente }) {
         )}
       </header>
       <main className="wrap">
-        {!M.cfg.medidos && perfil.rol !== 'operador' && (
-          <div className="banner warn">Los tiempos estándar son estimados iniciales. Mídelos en el taller y cárgalos en Ajustes para que las fechas y alertas sean exactas.</div>
+        {!cargando && perfil.rol !== 'operador' && !tiempos.some((t) => +t.minutos > 0) && (
+          <div className="banner">Los tiempos de producción todavía son estimados. Se ajustan solos a medida que el taller registra piezas: mientras más se registre, más exactas serán las fechas y las alertas.</div>
         )}
         {cargando ? <div className="empty">Cargando el taller…</div> : (
           <>

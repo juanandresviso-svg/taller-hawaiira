@@ -92,6 +92,7 @@ Guarda:
 4. Pulsa **Run**. Debe decir *Success. No rows returned*.
 
 5. Repite los pasos 1 a 4 con el archivo `supabase/migracion-02-costos.sql` (agrega bordado, materiales, costos y cotizaciones).
+6. Repite los pasos 1 a 4 con `supabase/migracion-03-tiempos.sql` (medición de tiempos reales, aprendizaje e informe de producción).
 
 ### 3.3 Copiar las llaves
 

@@ -113,7 +113,7 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
           </div>
           {nuevoProd && (
             <div style={{ marginTop: 12 }}>
-              <NuevoProducto supabase={supabase} productos={M.cfg.productos} onCancel={() => setNuevoProd(false)}
+              <NuevoProducto supabase={supabase} cfg={M.cfg} onCancel={() => setNuevoProd(false)}
                 onCreado={async (clave, nombre) => { await recargar.config(); set('producto', clave); setNuevoProd(false); avisar(`Producto "${nombre}" creado.`); }} />
             </div>
           )}
@@ -172,7 +172,7 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                           <span className="small muted">{cf === 'entregar' ? '¿Marcar como entregado?' : '¿Eliminar este pedido y sus registros?'}</span>
                           <button className={'btn sm ' + (cf === 'borrar' ? 'danger' : 'primary')} disabled={busy} onClick={async () => {
                             setConfirm(null);
-                            if (cf === 'entregar') await run(() => supabase.from('ordenes').update({ estado: 'entregado', entregado: new Date().toISOString() }).eq('id', o.id), 'Pedido marcado como entregado.');
+                            if (cf === 'entregar') await run(() => supabase.from('ordenes').update({ estado: 'entregado', entregado: new Date().toISOString() }).eq('id', o.id), 'Pedido entregado. Su informe de producción está en el botón Informe.');
                             else await run(() => supabase.from('ordenes').delete().eq('id', o.id), 'Pedido eliminado.');
                           }}>Sí, {cf === 'entregar' ? 'entregado' : 'eliminar'}</button>
                           <button className="btn sm" onClick={() => setConfirm(null)}>No</button>
@@ -182,6 +182,7 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                           {!ent && <button className="btn sm" onClick={() => { setErr(''); setDraft(structuredClone(o)); window.scrollTo(0, 0); }}>Editar</button>}
                           {!ent && <button className="btn sm" onClick={() => setConfirm({ id: o.id, a: 'entregar' })}>Marcar entregado</button>}
                           {ent && <button className="btn sm" onClick={() => run(() => supabase.from('ordenes').update({ estado: 'activo', entregado: null }).eq('id', o.id), 'Pedido reactivado.')}>Reactivar</button>}
+                          <a className="btn sm" href={'/informe/' + o.id} target="_blank" rel="noreferrer">Informe</a>
                           {veMateriales && !ent && <button className="btn sm" onClick={() => setSalida(salida === o.id ? null : o.id)}>Salida de material</button>}
                           {perfil.rol === 'direccion' && <button className="btn sm danger" onClick={() => setConfirm({ id: o.id, a: 'borrar' })}>Eliminar</button>}
                         </>

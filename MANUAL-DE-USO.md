@@ -49,6 +49,8 @@ Registra **cada vez que termines un paquete o al cierre de cada bloque de trabaj
 3. Pulsa **Registrar**.
 4. Abajo aparece la confirmación, por ejemplo *"Registrado: 25 piezas de costura en OP-0141"*.
 
+**Mide tu tiempo con "Empezar".** Pulsa **Empezar** cuando arranques un pedido. Al pulsar **Registrar**, la app guarda cuánto tardaste y sigue contando el siguiente paquete; pulsa **Pausar** si te pasas a otra cosa. Si no usas Empezar, la app mide desde tu registro anterior (o desde la hora de entrada) y descuenta el almuerzo. Con estos tiempos la app aprende cuánto tarda de verdad cada prenda.
+
 **¿Te equivocaste?** Pulsa **Deshacer** en ese mismo aviso. Tienes 30 minutos para deshacer tu propio registro. Después, pídeselo a la jefe(a) de taller.
 
 ### Mensajes que puedes ver
@@ -149,6 +151,21 @@ Cada vez que salga material del almacén para un pedido (tela, hilo, etiquetas, 
 | **Mano de obra e indirectos** | Costo por hora de cada estación, gastos indirectos del mes, margen objetivo, anticipo y datos de la empresa para las cotizaciones. |
 
 Para que los costos sean confiables: precios de materiales al día, recetas completas, costo por hora real y salidas de material registradas el mismo día.
+
+### Tiempos que se aprenden solos
+
+Los tiempos por pieza no hay que cargarlos al principio. Un producto nuevo arranca con un estimado (el promedio de los productos que ya existen) y la app lo corrige sola con cada pedido: compara lo que tardó el taller de verdad con las producciones anteriores y ajusta el tiempo que usa para planificar. En **Ajustes → Tiempos de producción** se ve, para cada producto y etapa, el tiempo en uso, el real medido y de cuántos pedidos sale.
+
+### Informe de producción
+
+Cada pedido tiene un botón **Informe**. Abre un informe con el logo, listo para imprimir o guardar en PDF, con:
+
+- fechas de creación, inicio, entrega y si llegó a tiempo;
+- minutos por pieza reales de cada etapa, comparados con lo planificado y con las producciones anteriores del mismo producto (en verde si fue más rápido, en rojo si fue más de 10% más lento);
+- quién trabajó en cada etapa, cuántas piezas y cuántas horas;
+- costos presupuestados contra reales, para dirección, jefe de taller y administración.
+
+Al marcar un pedido como entregado, su informe queda completo.
 
 ## 4. Tablero
 

@@ -11,6 +11,11 @@ export default function MiTrabajo({ supabase, perfil, M, ordenes, registros, per
   const [busy, setBusy] = useState(false);
   const pools = perfil.estacion ? [perfil.estacion] : POOLS;
   const hoy = isoDay(M.t0);
+  const kIni = 'inicios:' + perfil.id;
+  const [inicios, setInicios] = useState({});
+  useEffect(() => { try { setInicios(JSON.parse(localStorage.getItem(kIni) || '{}')); } catch {} }, [kIni]);
+  const fijarInicio = (key, iso) => setInicios((x) => { const n = { ...x }; if (iso) n[key] = iso; else delete n[key]; try { localStorage.setItem(kIni, JSON.stringify(n)); } catch {} return n; });
+  const timer = { inicios, fijarInicio };
   const misHoy = registros.filter((r) => r.persona_id === perfil.id && r.dia === hoy && r.etapa !== 'preprensa').reduce((a, r) => a + (+r.cantidad || 0), 0);
 
   async function registrar(o, s, cantidad) {
@@ -20,11 +25,13 @@ export default function MiTrabajo({ supabase, perfil, M, ordenes, registros, per
     if (disp <= 0) return avisar(M.doneOf(o, s) >= M.tot(o, s) ? 'Esa etapa ya está completa.' : 'Todavía no hay piezas listas de la etapa anterior.');
     const real = Math.min(q, disp);
     setBusy(true);
-    const { data, error } = await supabase.rpc('registrar_produccion', { p_orden: o.id, p_etapa: s, p_cantidad: real });
+    const key = o.id + '|' + s, ini = inicios[key];
+    const { data, error } = await supabase.rpc('registrar_produccion', { p_orden: o.id, p_etapa: s, p_cantidad: real, p_inicio: ini || null });
     setBusy(false);
     if (error) return avisar('No se pudo registrar: ' + error.message);
     setQty((x) => ({ ...x, [o.id + s]: '' }));
     recargar.ordenes(); recargar.registros();
+    if (ini) fijarInicio(key, M.doneOf(o, s) + real >= M.tot(o, s) ? null : new Date().toISOString()); // sigue contando el siguiente paquete
     const n = data?.registrado || 0;
     const rid = data?.registro_id;
     avisar(s === 'preprensa' ? `Preprensa lista en ${o.codigo}` : `Registrado: ${n} piezas de ${STAGE_NAME[s].toLowerCase()} en ${o.codigo}${real < q ? ` (solo había ${real} disponibles)` : ''}`,
@@ -40,7 +47,7 @@ export default function MiTrabajo({ supabase, perfil, M, ordenes, registros, per
         {perfil.estacion ? <>Estación: <b style={{ color: 'var(--ink)' }}>{POOL_NAME[perfil.estacion]}</b> · </> : 'Vista general de todas las estaciones · '}
         Registraste hoy: <b className="num" style={{ color: 'var(--ink)' }}>{nf.format(misHoy)}</b> piezas
       </div>
-      {pools.map((p, k) => <Estacion key={p} primera={k === 0} p={p} M={M} ordenes={ordenes} multi={!perfil.estacion} qty={qty} setQty={setQty} busy={busy} registrar={registrar} />)}
+      {pools.map((p, k) => <Estacion key={p} primera={k === 0} p={p} M={M} ordenes={ordenes} multi={!perfil.estacion} qty={qty} setQty={setQty} busy={busy} registrar={registrar} timer={timer} />)}
       {['direccion', 'jefa'].includes(perfil.rol) && (
         <Recientes supabase={supabase} registros={registros} ordenes={ordenes} perfiles={perfiles} avisar={avisar} recargar={recargar} />
       )}
@@ -48,7 +55,7 @@ export default function MiTrabajo({ supabase, perfil, M, ordenes, registros, per
   );
 }
 
-function Estacion({ primera, p, M, ordenes, multi, qty, setQty, busy, registrar }) {
+function Estacion({ primera, p, M, ordenes, multi, qty, setQty, busy, registrar, timer }) {
   const plan = M.hoyPlan[p] || [];
   const n = Math.max(1, M.personas(p));
   const seen = new Set(plan.map((x) => x.oid + '|' + x.s));
@@ -68,25 +75,25 @@ function Estacion({ primera, p, M, ordenes, multi, qty, setQty, busy, registrar 
     <section className="station">
       <h2 data-tour={primera ? 'plan' : undefined}>{POOL_NAME[p]} · plan de hoy</h2>
       {plan.length ? (
-        <div className="list">{plan.map((t, j) => <Tarea key={t.oid + t.s} primera={primera && j === 0} t={t} n={n} hoy M={M} ordenes={ordenes} qty={qty} setQty={setQty} busy={busy} registrar={registrar} />)}</div>
+        <div className="list">{plan.map((t, j) => <Tarea key={t.oid + t.s} primera={primera && j === 0} t={t} n={n} hoy M={M} ordenes={ordenes} qty={qty} setQty={setQty} busy={busy} registrar={registrar} timer={timer} />)}</div>
       ) : <div className="empty">Nada programado hoy en {POOL_NAME[p].toLowerCase()}.</div>}
       {externos.length > 0 && (
         <>
           <h2>Bordado externo · taller aliado</h2>
-          <div className="list">{externos.map((t) => <Tarea key={t.oid + t.s} t={t} n={n} M={M} ordenes={ordenes} qty={qty} setQty={setQty} busy={busy} registrar={registrar} />)}</div>
+          <div className="list">{externos.map((t) => <Tarea key={t.oid + t.s} t={t} n={n} M={M} ordenes={ordenes} qty={qty} setQty={setQty} busy={busy} registrar={registrar} timer={timer} />)}</div>
         </>
       )}
       {!multi && internos.length > 0 && (
         <>
           <h2 data-tour="viene">Lo que viene</h2>
-          <div className="list">{internos.slice(0, 6).map((t) => <Tarea key={t.oid + t.s} t={t} n={n} M={M} ordenes={ordenes} qty={qty} setQty={setQty} busy={busy} registrar={registrar} />)}</div>
+          <div className="list">{internos.slice(0, 6).map((t) => <Tarea key={t.oid + t.s} t={t} n={n} M={M} ordenes={ordenes} qty={qty} setQty={setQty} busy={busy} registrar={registrar} timer={timer} />)}</div>
         </>
       )}
     </section>
   );
 }
 
-function Tarea({ primera, t, n, hoy, M, ordenes, qty, setQty, busy, registrar }) {
+function Tarea({ primera, t, n, hoy, M, ordenes, qty, setQty, busy, registrar, timer }) {
   const o = ordenes.find((x) => x.id === t.oid);
   const s = t.s;
   const ckKey = 'ck:' + isoDay(M.t0) + ':' + t.oid + ':' + s;
@@ -130,6 +137,9 @@ function Tarea({ primera, t, n, hoy, M, ordenes, qty, setQty, busy, registrar })
         <div className="reg"><button className="btn primary" disabled={busy} onClick={() => registrar(o, s, 1)}>Marcar preprensa lista</button></div>
       ) : (
         <div className="reg" data-tour={primera ? 'registrar' : undefined}>
+          {!ext && timer && (timer.inicios[o.id + '|' + s]
+            ? <button type="button" className="btn" title="Pausar el cronómetro" onClick={() => timer.fijarInicio(o.id + '|' + s, null)}>⏱ desde {new Date(timer.inicios[o.id + '|' + s]).toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' })} · Pausar</button>
+            : <button type="button" className="btn" data-tour={primera ? 'empezar' : undefined} onClick={() => timer.fijarInicio(o.id + '|' + s, new Date().toISOString())}>Empezar</button>)}
           <input id={'q-' + k} type="number" min="1" inputMode="numeric" placeholder="Piezas" aria-label="Piezas terminadas" value={qty[k] || ''} onChange={(e) => setQty((x) => ({ ...x, [k]: e.target.value }))} />
           <button className="btn" onClick={() => setQty((x) => ({ ...x, [k]: String((+x[k] || 0) + 10) }))}>+10</button>
           <button className="btn" onClick={() => setQty((x) => ({ ...x, [k]: String((+x[k] || 0) + 25) }))}>+25</button>

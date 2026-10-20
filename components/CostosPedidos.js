@@ -98,7 +98,7 @@ function FilaPedido({ o, p, r, margen, desvMat, M, K, abierto, onClick, material
                   <tr><td><b>Total a la fecha</b></td><td></td><td className="r"><b>{usd.format(r.total)}</b></td></tr>
                 </tbody>
               </table>
-              <p className="small muted" style={{ marginBottom: 0 }}>Entrega comprometida: {fd(parseDay(o.fechaCompromiso))}.</p>
+              <p className="small muted" style={{ marginBottom: 0 }}>Entrega comprometida: {fd(parseDay(o.fechaCompromiso))}. <a href={'/informe/' + o.id} target="_blank" rel="noreferrer" style={{ color: 'var(--ink)' }}>Ver informe de producción</a></p>
             </div>
           </div>
         </td></tr>

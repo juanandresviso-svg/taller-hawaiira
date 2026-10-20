@@ -130,7 +130,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                       <input type="number" step="0.05" min="0" value={it.manual ? it.precio : c.sug || ''} onChange={(e) => set((d) => { d.items[i].precio = e.target.value; d.items[i].manual = true; })} />
                     </label>
                   </div>
-                  {nuevoProd === i && <div style={{ marginTop: 10 }}><NuevoProducto supabase={supabase} productos={M.cfg.productos} onCancel={() => setNuevoProd(null)} onCreado={async (clave, nombre) => { await recargar.config(); set((d) => { d.items[i].producto = clave; }); setNuevoProd(null); avisar(`Producto "${nombre}" creado. Agrega su receta en Costos → Recetas.`); }} /></div>}
+                  {nuevoProd === i && <div style={{ marginTop: 10 }}><NuevoProducto supabase={supabase} cfg={M.cfg} onCancel={() => setNuevoProd(null)} onCreado={async (clave, nombre) => { await recargar.config(); set((d) => { d.items[i].producto = clave; }); setNuevoProd(null); avisar(`Producto "${nombre}" creado. Agrega su receta en Costos → Recetas.`); }} /></div>}
                   <p className="small" style={{ margin: '8px 0 0' }}>
                     Costo interno: <b>{usd.format(c.p.unitario)}</b>/pieza · Sugerido ({K.C.margen}% margen): <b>{usd.format(c.sug)}</b>
                     {' · '}Margen con este precio: <b className={c.margen != null && c.margen < 0.15 ? 'neg' : 'pos'}>{c.margen == null ? '—' : pct(c.margen)}</b>
