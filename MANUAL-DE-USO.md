@@ -20,6 +20,8 @@ Guía para todo el equipo de Hawaiira Studio. La app muestra los pedidos del tal
 
 **Tutorial:** la primera vez que entras, la app te muestra un recorrido guiado de tu pantalla. Para verlo de nuevo, pulsa **Tutorial** arriba a la derecha.
 
+**Actualizaciones:** cuando se publique una versión nueva, aparece un aviso abajo a la derecha: pulsa **Actualizar ahora**. Después de actualizar verás qué cambió. Si activas **Avisarme en el escritorio**, también te llega una notificación aunque la app esté en segundo plano.
+
 **¿Olvidaste tu contraseña?** En la pantalla de entrada pulsa **Olvidé mi contraseña**, escribe tu correo y sigue el enlace que te llega.
 
 **Si usas una tableta compartida**, pulsa **Salir** (arriba a la derecha) al terminar tu turno. Así lo que registre la siguiente persona queda a su nombre.
@@ -203,6 +205,7 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 - **Horas por día, eficiencia y sábados:** definen cuánta capacidad tiene el taller.
 - **Tiempos estándar:** minutos por pieza de cada producto en corte, costura y empaque, y los tiempos de estampado. Para medirlos, cronometra 10 piezas seguidas, divide entre 10 y promedia con una segunda persona.
 - **Agregar producto:** para gorras, chaquetas nuevas, etc.
+- **Cambiar el nombre de un producto:** escríbelo en la tabla de productos y pulsa **Guardar nombres y productos**. Los pedidos existentes muestran el nombre nuevo.
 
 ### Solo para dirección: Usuarios
 

@@ -1,5 +1,5 @@
 // Service worker mínimo: permite instalar la app en el escritorio y guarda los archivos estáticos.
-const CACHE = 'taller-v1';
+const CACHE = 'taller-v2';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/logo.svg', '/icons/icon-192.png', '/icons/icon-512.png'])));
   self.skipWaiting();
@@ -22,4 +22,13 @@ self.addEventListener('fetch', (e) => {
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font-family:system-ui;padding:40px;text-align:center;color:#111"><h2>Sin conexión</h2><p>El Taller Hawaiira necesita internet para mostrar datos al día. Revisa la conexión y vuelve a intentar.</p></body>',
       { headers: { 'Content-Type': 'text/html; charset=utf-8' } })));
   }
+});
+
+// Al tocar el aviso de "nueva versión", abre o enfoca la app
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ws) => {
+    const w = ws.find((c) => 'focus' in c);
+    return w ? w.focus() : self.clients.openWindow('/');
+  }));
 });

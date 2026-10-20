@@ -231,3 +231,11 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); 
   @page { size: letter; margin: 16mm; }
 }
 .inf-h { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 26px 0 6px; font-weight: 600; }
+
+/* Aviso de actualización */
+.upd { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--ink); color: #fff; border-radius: 12px; padding: 12px 14px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; max-width: min(440px, calc(100% - 32px)); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.upd .small { color: #cfcfca; }
+.upd-acts { display: flex; gap: 8px; align-items: center; }
+.upd .btn.primary { background: #fff; color: var(--ink); border-color: #fff; }
+.upd .btn.link { color: #cfcfca; }
+@media (max-width: 640px) { .upd { left: 16px; right: 16px; max-width: none; } }

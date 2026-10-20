@@ -31,6 +31,9 @@ export default function Ajustes({ supabase, config, A, avisar }) {
     d.eficiencia = Math.min(100, Math.max(10, +d.eficiencia || 85));
     d.almuerzoMin = Math.max(0, +d.almuerzoMin || 0);
     d.deco.bordadoExternoDias = Math.max(0, +d.deco.bordadoExternoDias || 0);
+    const vacio = Object.values(d.productos).find((p) => !String(p.nombre || '').trim());
+    if (vacio) return avisar('Hay un producto sin nombre. Escribe un nombre antes de guardar.');
+    Object.values(d.productos).forEach((p) => { p.nombre = String(p.nombre).trim(); });
     setBusy(true);
     const { error } = await supabase.from('config').update({ data: d, actualizado: new Date().toISOString() }).eq('id', 1);
     setBusy(false);
@@ -77,7 +80,10 @@ export default function Ajustes({ supabase, config, A, avisar }) {
           <tbody>
             {Object.entries(c.productos).map(([k, p]) => (
               <tr key={k}>
-                <td style={{ verticalAlign: 'top' }}><b>{p.nombre}</b></td>
+                <td style={{ verticalAlign: 'top' }}>
+                  <input id={'pn-' + k} aria-label="Nombre del producto" value={p.nombre} onChange={(e) => set(`productos.${k}.nombre`, e.target.value)} style={{ width: 180, textAlign: 'left', fontFamily: 'var(--font)', fontWeight: 600 }} />
+                  {p.nombre !== (cfgBase(config).productos[k] || {}).nombre && <div className="small" style={{ color: 'var(--warn)' }}>sin guardar</div>}
+                </td>
                 {ETAPAS_PROD.map((s) => <Resultado key={s} d={det.productos[k] && det.productos[k][s]} />)}
               </tr>
             ))}
@@ -86,7 +92,7 @@ export default function Ajustes({ supabase, config, A, avisar }) {
         <div className="formacts">
           <input id="nuevo-prod" style={{ maxWidth: 220 }} placeholder="Nuevo producto (ej. Gorra)" value={nuevo} onChange={(e) => setNuevo(e.target.value)} />
           <button className="btn sm" onClick={agregarProducto}>Agregar producto</button>
-          <span className="small muted">Se guarda con "Guardar ajustes".</span>
+          <span className="small muted">Para cambiar el nombre de un producto, escríbelo en la tabla. Los nombres nuevos y los productos agregados se guardan con el botón de abajo; los pedidos existentes conservan su producto y muestran el nombre nuevo.</span>
         </div>
         <table style={{ marginTop: 14 }}>
           <thead><tr><th>Estampado</th><th className="r">Tiempo</th></tr></thead>
@@ -95,6 +101,9 @@ export default function Ajustes({ supabase, config, A, avisar }) {
             {Object.entries(det.prep).map(([k, d]) => <tr key={k}><td style={{ verticalAlign: 'top' }}>{d.nombre}</td><Resultado d={d} unidad="min" /></tr>)}
           </tbody>
         </table>
+        <div className="formacts">
+          <button className="btn primary" onClick={guardar} disabled={busy}>{busy ? 'Guardando…' : 'Guardar nombres y productos'}</button>
+        </div>
         <p className="small muted" style={{ marginBottom: 0 }}>Para que el resultado sea fiel, el equipo debe registrar cada paquete apenas lo termina (o usar Empezar). El detalle de cada pedido está en su Informe de producción.</p>
       </div>
     </>

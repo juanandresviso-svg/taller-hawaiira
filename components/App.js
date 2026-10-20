@@ -8,6 +8,7 @@ import MiTrabajo from './MiTrabajo';
 import Ajustes from './Ajustes';
 import Usuarios from './Usuarios';
 import Tutorial from './Tutorial';
+import Actualizacion from './Actualizacion';
 import { pasosTutorial } from '@/lib/tutorial';
 import { aprender } from '@/lib/aprendizaje';
 import Costos from './Costos';
@@ -162,6 +163,7 @@ export default function App({ perfil, cliente }) {
           </>
         )}
       </main>
+      <Actualizacion bloqueado={tour} />
       {tour && !cargando && <Tutorial pasos={pasos} permitidas={permitidas} setTab={setTabTour} onClose={cerrarTour} />}
       {toast && (
         <div className="toast" role="status">
