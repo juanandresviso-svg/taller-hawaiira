@@ -95,9 +95,20 @@ Dirección, jefe(a) de taller, administración, compras y diseño pueden crear y
    - **Fecha comprometida:** la que le prometiste al cliente.
    - **Monto** (opcional) y **notas.**
 3. Marca lo que ya esté listo: **Arte aprobado**, **Material listo**, **Anticipo recibido**.
-4. **Crear pedido**.
+4. **Orden de compra del cliente:** escribe el número de la OC y adjunta el archivo (PDF o foto, hasta 10 MB).
+5. Pulsa **Crear y activar pedido** (con OC) o **Crear pedido (por activar)** (sin OC).
 
 El código (OP-0001, OP-0002…) se asigna solo. Apenas lo creas, la app calcula la **fecha proyectada** según la carga real del taller. Si sale en rojo, revisa la fecha con el cliente antes de confirmarla.
+
+### Orden de compra: lo que activa un pedido
+
+Un pedido solo entra en el plan del taller cuando tiene la **orden de compra (OC) del cliente**.
+
+- **Sin OC** el pedido queda **Por activar** (etiqueta naranja). Se ve en Pedidos y en el Tablero, pero no aparece en *Mi trabajo*, no ocupa capacidad y no tiene fecha proyectada.
+- **Para activarlo:** **Pedidos → Por activar → Subir OC y activar**, escribe el número, elige el archivo y pulsa **Subir y activar**. Desde ese momento entra en el plan y se avisa a jefe de taller, compras y al dueño del pedido.
+- **Ver la OC:** botón **Ver OC** en el pedido. Se abre en una pestaña nueva.
+- **Cotizaciones aprobadas:** al pulsar **Aprobada → crear pedidos** puedes adjuntar la OC; si lo haces, los pedidos se crean activos. Si no, quedan por activar.
+- **Excepción:** dirección puede pulsar **Activar sin OC** (por ejemplo, un cliente de confianza que manda la OC después). Los pedidos importados desde Excel entran activos.
 
 ### Importar varios pedidos desde Excel
 
@@ -117,6 +128,7 @@ El código (OP-0001, OP-0002…) se asigna solo. Apenas lo creas, la app calcula
 | 🟡 Justo | Cualquier retraso lo vuelve tarde |
 | 🔴 Tarde | Con la carga actual no llega a la fecha |
 | 🔵 Listo para despachar | Todas las etapas terminadas |
+| 🟠 Por activar · falta la OC | Espera la orden de compra del cliente |
 
 ### Botones de cada pedido
 
@@ -203,7 +215,7 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 ### Solo para jefe(a) de taller y dirección: Ajustes
 
 - **Horas por día, eficiencia y sábados:** definen cuánta capacidad tiene el taller.
-- **Tiempos estándar:** minutos por pieza de cada producto en corte, costura y empaque, y los tiempos de estampado. Para medirlos, cronometra 10 piezas seguidas, divide entre 10 y promedia con una segunda persona.
+- **Tiempos de producción:** no se escriben. Son el resultado de los pedidos entregados; aquí se ven con su origen (promedio real o estimado).
 - **Agregar producto:** para gorras, chaquetas nuevas, etc.
 - **Cambiar el nombre de un producto:** escríbelo en la tabla de productos y pulsa **Guardar nombres y productos**. Los pedidos existentes muestran el nombre nuevo.
 
@@ -221,14 +233,39 @@ De lunes a sábado, cerca de las 7:00 a. m., cada responsable recibe un correo c
 
 ---
 
+## 6b. Notificaciones
+
+Avisos en la pantalla del computador o del teléfono, **aunque la app esté cerrada**.
+
+**Activarlas (en cada dispositivo):** botón **Notificaciones** arriba a la derecha → **Activar en este dispositivo** → acepta el permiso del navegador → **Enviar prueba**. En iPhone, primero agrega la app a la pantalla de inicio (Safari → Compartir → *Agregar a inicio*) y ábrela desde ese ícono.
+
+**Qué avisa y a quién:**
+
+| Tipo | Novedades | Quién lo recibe |
+|---|---|---|
+| Pedidos | Nuevo pedido, pedido activado con la OC, listo para despachar, entregado | Dueño del pedido, jefe de taller, compras, administración |
+| Cotizaciones | Aprobada o rechazada | Quien la creó y administración |
+| Alertas en rojo | Pedido que se va tarde, material sin confirmar cerca del corte, nuevo cuello de botella | Dueño del pedido, jefe de taller, compras |
+| Producción | Un pedido termina una etapa | Jefe de taller y dueño del pedido |
+| Almacén | Un material se queda sin stock | Compras |
+
+Dirección recibe todo. Nunca te llega un aviso de algo que hiciste tú. Producción (operadores) no recibe notificaciones: su lista está en *Mi trabajo*.
+
+**Apagar un tipo:** en el mismo panel, desmarca lo que no quieras recibir. Aplica a todos tus dispositivos.
+
+**Tableta compartida:** el dispositivo queda a nombre de quien inició sesión por última vez.
+
+---
+
 ## 7. Reglas de oro del taller
 
 1. **Si no está registrado, no se hizo.** La app solo sabe lo que se registra.
 2. **Registra durante el día**, no al final de la semana. Las alertas y las metas dependen de eso.
-3. **Ningún pedido entra a corte sin "Material listo".**
-4. **Ninguna preprensa arranca sin "Arte aprobado".**
-5. **La fecha al cliente se confirma después de ver la proyectada** en la app.
-6. **Si ves algo raro** (cantidades que no cuadran, un pedido que no aparece), avisa a la jefe(a) de taller ese mismo día.
+3. **Ningún pedido entra al plan sin la orden de compra del cliente.**
+4. **Ningún pedido entra a corte sin "Material listo".**
+5. **Ninguna preprensa arranca sin "Arte aprobado".**
+6. **La fecha al cliente se confirma después de ver la proyectada** en la app.
+7. **Si ves algo raro** (cantidades que no cuadran, un pedido que no aparece), avisa a la jefe(a) de taller ese mismo día.
 
 ---
 

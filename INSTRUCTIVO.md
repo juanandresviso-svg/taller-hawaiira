@@ -93,6 +93,9 @@ Guarda:
 
 5. Repite los pasos 1 a 4 con el archivo `supabase/migracion-02-costos.sql` (agrega bordado, materiales, costos y cotizaciones).
 6. Repite los pasos 1 a 4 con `supabase/migracion-03-tiempos.sql` (medición de tiempos reales, aprendizaje e informe de producción).
+7. Repite los pasos 1 a 4 con `supabase/migracion-04-avisos-oc.sql` (notificaciones push y orden de compra del cliente; crea también la carpeta privada `ordenes-compra` en **Storage**).
+
+> Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 
 ### 3.3 Copiar las llaves
 
@@ -229,6 +232,27 @@ En Vercel → **Settings → Cron Jobs** debe aparecer `/api/cron/resumen` con h
 
 Para probarlo sin esperar, pulsa **Run** en esa línea. Si no hay alertas, no se envía nada.
 
+### 4.5 Notificaciones push (una sola vez)
+
+Las notificaciones llegan aunque la app esté cerrada. Necesitan un par de claves propias del taller (se llaman claves VAPID). No cuestan nada.
+
+1. Entra a la app con tu usuario de Dirección y pulsa **Notificaciones** (arriba a la derecha).
+2. En el recuadro *Falta configurar las notificaciones* pulsa **Generar claves**. Las claves se crean en tu navegador y no se envían a ningún lado.
+3. En **Vercel → Settings → Environment Variables** agrega, para Production:
+
+| Nombre | Valor |
+|---|---|
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | la primera clave (pública, unas 87 letras) |
+| `VAPID_PRIVATE_KEY` | la segunda clave (privada, unas 43 letras) |
+| `VAPID_SUBJECT` | `mailto:` seguido del Gmail del taller, por ejemplo `mailto:tallerhawaiira@gmail.com` |
+
+4. **Deployments → ⋯ → Redeploy**. La clave pública solo se aplica al volver a desplegar.
+5. Vuelve a abrir **Notificaciones** → **Activar en este dispositivo** → acepta el permiso del navegador → **Enviar prueba**. Debe aparecer un aviso en segundos.
+
+> Importante: no cambies las claves después. Si las cambias, todas las personas tienen que volver a activar las notificaciones en sus dispositivos.
+
+**iPhone:** las notificaciones solo funcionan con la app agregada a la pantalla de inicio (Safari → Compartir → *Agregar a inicio*) y abierta desde ese ícono. En Android, Mac y Windows funcionan en Chrome o Edge, instalada o no.
+
 ---
 
 ## 5. Tu primer usuario (Dirección)
@@ -306,6 +330,9 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | El enlace dice que venció | Pasaron más de 24 horas o ya se usó | Reinvita desde Usuarios o usa **Olvidé mi contraseña**. |
 | No llega el resumen diario | Variables de Gmail en Vercel mal escritas | Revisa `GMAIL_USER` y `GMAIL_APP_PASSWORD` y redespliega. Mira **Vercel → Logs**. |
 | Una estación muestra "sin capacidad" | Nadie activo asignado a esa estación | Asigna al menos una persona en Usuarios. |
+| "Falta configurar las claves de notificaciones" | Faltan las variables VAPID o no se redesplegó | Revisa el paso 4.5 y pulsa **Redeploy**. |
+| La prueba de notificación no llega | Permiso bloqueado en el navegador o el sistema | Candado junto a la dirección → Notificaciones → Permitir. En Mac: Configuración del Sistema → Notificaciones → Chrome. Luego desactiva y vuelve a activar en la app. |
+| Error al subir la orden de compra | No se corrió la migración 04 | Corre `supabase/migracion-04-avisos-oc.sql` (paso 3.2). |
 | Supabase pausó el proyecto | En el plan gratuito se pausa tras 7 días sin uso | El resumen diario lo mantiene activo. Si pasa, pulsa **Restore**. |
 
 **Respaldos:** cuando el taller dependa de la app, pasa a **Supabase Pro** para tener copias diarias.
@@ -324,4 +351,6 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → API Keys | Vercel |
 | `SUPABASE_SECRET_KEY` | Supabase → API Keys | Solo Vercel |
 | `CRON_SECRET` | La inventas tú | Vercel |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` | App → Notificaciones → Generar claves (paso 4.5) | Solo Vercel |
+| `VAPID_SUBJECT` | `mailto:` + Gmail del taller | Vercel |
 | Dirección de la app | Vercel, después del primer despliegue | Supabase → URL Configuration |

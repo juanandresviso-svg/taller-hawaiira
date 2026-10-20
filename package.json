@@ -16,7 +16,8 @@
     "nodemailer": "^10.0.14",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "read-excel-file": "^9.3.12"
+    "read-excel-file": "^9.3.12",
+    "web-push": "^3.6.7"
   },
   "engines": {
     "node": ">=20"

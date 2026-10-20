@@ -239,3 +239,16 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); 
 .upd .btn.primary { background: #fff; color: var(--ink); border-color: #fff; }
 .upd .btn.link { color: #cfcfca; }
 @media (max-width: 640px) { .upd { left: 16px; right: 16px; max-width: none; } }
+
+/* Panel modal (notificaciones) */
+.modal-fondo { position: fixed; inset: 0; background: rgba(17,17,17,.35); z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; overflow-y: auto; }
+.modal { background: var(--surface, #fff); border-radius: 14px; padding: 20px; width: 100%; max-width: 520px; box-shadow: 0 12px 40px rgba(0,0,0,.18); }
+.modal .checks label > span { line-height: 1.35; }
+.banner.accion { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.banner.accion .acts { margin-left: auto; display: flex; gap: 6px; }
+/* Orden de compra */
+.oc { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.oc .falta { color: var(--warn); font-weight: 600; }
+.pill.espera { background: var(--warn-soft); color: var(--warn); border: 1px dashed var(--warn); }
+.filebtn { position: relative; overflow: hidden; }
+.filebtn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }

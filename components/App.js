@@ -9,6 +9,8 @@ import Ajustes from './Ajustes';
 import Usuarios from './Usuarios';
 import Tutorial from './Tutorial';
 import Actualizacion from './Actualizacion';
+import Avisos, { vincularDispositivo, pushSoportado } from './Avisos';
+import { revisarNovedades, RECIBE_AVISOS } from '@/lib/avisos';
 import { pasosTutorial } from '@/lib/tutorial';
 import { aprender } from '@/lib/aprendizaje';
 import Costos from './Costos';
@@ -52,6 +54,9 @@ export default function App({ perfil, cliente }) {
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState(null);
   const [tour, setTour] = useState(false);
+  const [avisosAbierto, setAvisosAbierto] = useState(false);
+  const [sugerirAvisos, setSugerirAvisos] = useState(false);
+  const recibe = RECIBE_AVISOS(perfil.rol);
   const toastT = useRef(null);
 
   const avisar = useCallback((msg, undo) => {
@@ -82,7 +87,12 @@ export default function App({ perfil, cliente }) {
   }), [supabase, veMateriales, veCostos]);
 
   useEffect(() => {
-    try { const t = localStorage.getItem('tab'); if (t && permitidas.includes(t)) setTab(t); } catch {}
+    try {
+      const q = new URLSearchParams(window.location.search).get('tab'); // al tocar una notificación
+      const t = q || localStorage.getItem('tab');
+      if (t && permitidas.includes(t)) setTab(t);
+      if (q) window.history.replaceState(null, '', '/');
+    } catch {}
     Promise.all(Object.values(cargar).map((f) => f())).finally(() => setCargando(false));
     const timers = {};
     const refrescar = (tabla) => { clearTimeout(timers[tabla]); timers[tabla] = setTimeout(() => cargar[tabla](), 250); };
@@ -115,10 +125,25 @@ export default function App({ perfil, cliente }) {
     try { localStorage.setItem('tutorial:' + perfil.id, '1'); } catch {}
   }, [perfil.id]);
   const pasos = useMemo(() => pasosTutorial(perfil), [perfil]);
+
+  // Notificaciones: este dispositivo queda a nombre de quien inició sesión, y se revisan novedades al abrir
+  useEffect(() => {
+    if (cargando) return;
+    vincularDispositivo(supabase, recibe);
+    if (!recibe) return;
+    try {
+      const ult = +localStorage.getItem('revision') || 0;
+      if (Date.now() - ult > 5 * 60000) { localStorage.setItem('revision', String(Date.now())); revisarNovedades(); }
+      if (pushSoportado() && Notification.permission === 'default' && !localStorage.getItem('sugerir-avisos:' + perfil.id)) setSugerirAvisos(true);
+    } catch {}
+  }, [cargando, supabase, recibe, perfil.id]);
+  const noSugerir = () => { setSugerirAvisos(false); try { localStorage.setItem('sugerir-avisos:' + perfil.id, '1'); } catch {} };
   const setTabTour = useCallback((t) => setTab(t), []);
 
   const A = useMemo(() => aprender(config, tiempos), [config, tiempos]);
-  const M = useMemo(() => crearMotor({ config: A.efectivo, ordenes, perfiles, historial }), [A, ordenes, perfiles, historial]);
+  // Los pedidos que esperan la orden de compra no entran en el plan del taller
+  const enPlan = useMemo(() => ordenes.filter((o) => o.estado !== 'espera'), [ordenes]);
+  const M = useMemo(() => crearMotor({ config: A.efectivo, ordenes: enPlan, perfiles, historial }), [A, enPlan, perfiles, historial]);
 
   const cambiarTab = (t) => { setTab(t); try { localStorage.setItem('tab', t); } catch {} window.scrollTo(0, 0); };
   const K = useMemo(() => (veCostos ? crearCostos({ M, cc: costosCfg, materiales }) : null), [veCostos, M, costosCfg, materiales]);
@@ -135,6 +160,7 @@ export default function App({ perfil, cliente }) {
           <div className="userbox">
             <span><span className={'dot' + (live ? ' on' : '')} />{live ? 'En vivo' : 'Conectando…'}</span>
             <span><b>{perfil.nombre}</b> · {perfil.estacion ? POOL_NAME[perfil.estacion] : ROLES[perfil.rol]}</span>
+            {recibe && <button className="btn sm" data-tour="avisos" onClick={() => setAvisosAbierto(true)}>Notificaciones</button>}
             <button className="btn sm" data-tour="ayuda" onClick={() => setTour(true)}>Tutorial</button>
             <form action="/api/salir" method="post" data-tour="salir"><button className="btn sm" type="submit">Salir</button></form>
           </div>
@@ -151,6 +177,12 @@ export default function App({ perfil, cliente }) {
         {!cargando && perfil.rol !== 'operador' && !A.entregados && (
           <div className="banner">Los tiempos de producción todavía son estimados. Se vuelven reales cuando se entregue el primer pedido con piezas registradas: los tiempos son el resultado de cada pedido entregado.</div>
         )}
+        {sugerirAvisos && !tour && (
+          <div className="banner accion">
+            <span>Activa las notificaciones para enterarte de pedidos nuevos, alertas en rojo y producción aunque la app esté cerrada.</span>
+            <span className="acts"><button className="btn sm primary" onClick={() => { noSugerir(); setAvisosAbierto(true); }}>Activar</button><button className="btn sm link" onClick={noSugerir}>Ahora no</button></span>
+          </div>
+        )}
         {cargando ? <div className="empty">Cargando el taller…</div> : (
           <>
             {tab === 'tablero' && <Tablero {...ctx} />}
@@ -163,7 +195,8 @@ export default function App({ perfil, cliente }) {
           </>
         )}
       </main>
-      <Actualizacion bloqueado={tour} />
+      <Actualizacion bloqueado={tour || avisosAbierto} />
+      {avisosAbierto && <Avisos supabase={supabase} perfil={perfil} avisar={avisar} onClose={() => setAvisosAbierto(false)} />}
       {tour && !cargando && <Tutorial pasos={pasos} permitidas={permitidas} setTab={setTabTour} onClose={cerrarTour} />}
       {toast && (
         <div className="toast" role="status">

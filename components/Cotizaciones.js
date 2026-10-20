@@ -4,6 +4,8 @@ import { usd, usd0 } from '@/lib/costos';
 import { DECO_NAME, fd, parseDay, isoDay, nf, pct, ordenADb } from '@/lib/motor';
 import { decoTexto } from './ui';
 import NuevoProducto from './NuevoProducto';
+import { subirOC, OC_TIPOS } from '@/lib/oc';
+import { revisarNovedades } from '@/lib/avisos';
 
 const ESTADO = { borrador: ['gris', 'Borrador'], enviada: ['listo', 'Enviada'], aprobada: ['verde', 'Aprobada'], rechazada: ['rojo', 'Rechazada'] };
 const redondear = (v) => Math.ceil(v * 20) / 20; // a 0,05 US$
@@ -21,6 +23,8 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
   const [busy, setBusy] = useState(false);
   const [aprobar, setAprobar] = useState(null);
   const [fechaAprob, setFechaAprob] = useState('');
+  const [ocFile, setOcFile] = useState(null);
+  const [ocNum, setOcNum] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [nuevoProd, setNuevoProd] = useState(null);
   const primerProd = Object.keys(M.cfg.productos)[0];
@@ -58,23 +62,30 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
 
   async function estado(c, est) {
     const { error } = await supabase.from('cotizaciones').update({ estado: est }).eq('id', c.id);
-    if (error) avisar('No se pudo guardar: ' + error.message); else recargar.cotizaciones();
+    if (error) avisar('No se pudo guardar: ' + error.message); else { recargar.cotizaciones(); revisarNovedades(); }
   }
 
   async function convertir(c) {
     if (!fechaAprob) return avisar('Indica la fecha de entrega comprometida.');
     setBusy(true);
+    let oc = null;
+    if (ocFile) {
+      const r = await subirOC(supabase, ocFile, { referencia: c.numero, numero: ocNum, perfilId: perfil.id });
+      if (r.error) { setBusy(false); return avisar(r.error); }
+      oc = r.campos;
+    }
     let n = parseInt(siguiente(ordenes.map((o) => o.codigo), '').replace(/\D/g, ''), 10) - 1;
     const filas = c.items.map((it) => ({
       ...ordenADb({ codigo: 'OP-' + String(++n).padStart(4, '0'), cliente: c.cliente, responsableId: perfil.id, producto: it.producto, cantidad: it.cantidad, tallas: it.tallas, deco: it.deco, fechaCompromiso: fechaAprob, monto: Math.round(it.cantidad * it.precio * 100) / 100, notas: [`Cotización ${c.numero}`, it.descripcion].filter(Boolean).join(' · '), arteAprobado: false, materialListo: false, anticipo: false }),
       creado_por: perfil.id,
+      ...(oc || { estado: 'espera', oc_numero: ocNum.trim() }),
     }));
     const { data, error } = await supabase.from('ordenes').insert(filas).select('codigo');
     if (error) { setBusy(false); return avisar('No se pudieron crear los pedidos: ' + error.message); }
     await supabase.from('cotizaciones').update({ estado: 'aprobada', fecha_entrega: fechaAprob, ordenes: (data || []).map((x) => x.codigo) }).eq('id', c.id);
-    setBusy(false); setAprobar(null); setFechaAprob('');
-    avisar(`Cotización aprobada: se crearon ${filas.length} pedido${filas.length > 1 ? 's' : ''}.`);
-    recargar.cotizaciones(); recargar.ordenes();
+    setBusy(false); setAprobar(null); setFechaAprob(''); setOcFile(null); setOcNum('');
+    avisar(`Cotización aprobada: se crearon ${filas.length} pedido${filas.length > 1 ? 's' : ''}${oc ? ' activos con la orden de compra' : '. Quedan por activar hasta que subas la orden de compra del cliente (en Pedidos)'}.`);
+    recargar.cotizaciones(); recargar.ordenes(); revisarNovedades();
   }
 
   const aprobadas = cotizaciones.filter((c) => c.estado === 'aprobada'), cerradas = cotizaciones.filter((c) => ['aprobada', 'rechazada'].includes(c.estado));
@@ -171,8 +182,10 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                 {aprobar === c.id ? (
                   <span className="acts">
                     <label className="small muted">Entrega comprometida <input type="date" value={fechaAprob} onChange={(e) => setFechaAprob(e.target.value)} style={{ width: 'auto', display: 'inline-block' }} /></label>
+                    <label className="small muted">N.º de OC <input value={ocNum} onChange={(e) => setOcNum(e.target.value)} style={{ width: 120, display: 'inline-block' }} /></label>
+                    <label className="small muted">Orden de compra (PDF o foto) <input type="file" accept={OC_TIPOS} onChange={(e) => setOcFile(e.target.files[0] || null)} style={{ width: 'auto', display: 'inline-block' }} /></label>
                     <button className="btn sm primary" disabled={busy} onClick={() => convertir(c)}>Crear {(c.items || []).length} pedido{(c.items || []).length > 1 ? 's' : ''}</button>
-                    <button className="btn sm" onClick={() => setAprobar(null)}>Cancelar</button>
+                    <button className="btn sm" onClick={() => { setAprobar(null); setOcFile(null); }}>Cancelar</button>
                   </span>
                 ) : confirm === c.id ? (
                   <span className="acts"><span className="small muted">¿Eliminar esta cotización?</span><button className="btn sm danger" onClick={async () => { setConfirm(null); await supabase.from('cotizaciones').delete().eq('id', c.id); recargar.cotizaciones(); }}>Sí, eliminar</button><button className="btn sm" onClick={() => setConfirm(null)}>No</button></span>

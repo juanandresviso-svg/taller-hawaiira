@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { nf1 } from '@/lib/motor';
+import { revisarNovedades } from '@/lib/avisos';
 
 // Registrar material que sale del almacén para un pedido (alimenta el costo real).
 export default function Salida({ supabase, orden, materiales, consumos, avisar, onClose, puedeBorrar }) {
@@ -23,6 +24,7 @@ export default function Salida({ supabase, orden, materiales, consumos, avisar, 
     if (error) return setErr('No se pudo guardar: ' + error.message);
     avisar(`Salida registrada: ${cant} ${m ? m.unidad : ''} de ${m ? m.nombre : 'material'} para ${orden.codigo}.`);
     setCant(''); setNota(''); setErr('');
+    revisarNovedades();
   }
   async function borrar(id) {
     const { error } = await supabase.from('consumos').delete().eq('id', id);

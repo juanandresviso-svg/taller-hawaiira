@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { crearMotor, ordenDesdeDb, POOLS, POOL_NAME, pct, fd, isoWeek } from '@/lib/motor';
 import { enviarCorreo, htmlResumen } from '@/lib/correo';
 import { siteUrl } from '@/lib/sitio';
+import { revisarYAvisar } from '@/lib/push';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,10 @@ export async function GET(request) {
   POOLS.forEach((p) => (util[p] = Math.max(prev[p] || 0, Math.round(Math.min(M.util[p].w10.u, 9) * 1000) / 1000)));
   await db.from('historial').upsert({ semana, util, actualizado: new Date().toISOString() });
 
+  // Notificaciones push de lo que haya cambiado (por si nadie abrió la app)
+  let push = null;
+  try { push = await revisarYAvisar(db); } catch (e) { console.error('push', e.message); }
+
   const site = siteUrl(request);
   const fecha = fd(M.t0);
   const carga = POOLS.filter((p) => M.personas(p) > 0).map((p) => ({ nombre: POOL_NAME[p], u: M.util[p].w10.u, txt: pct(M.util[p].w10.u) }));
@@ -45,5 +50,5 @@ export async function GET(request) {
       console.error('Error enviando a', p.email, e.message);
     }
   }
-  return NextResponse.json({ ok: true, enviados: enviados.length });
+  return NextResponse.json({ ok: true, enviados: enviados.length, push });
 }

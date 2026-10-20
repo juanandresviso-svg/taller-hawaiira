@@ -1,4 +1,5 @@
 'use client';
+import { revisarNovedades } from '@/lib/avisos';
 import { useEffect, useState } from 'react';
 import { POOLS, POOL_NAME, STAGE_NAME, STAGE_POOL, DECO_NAME, CHECK, fd, parseDay, nf, isoDay } from '@/lib/motor';
 import { Pill, decoTexto } from './ui';
@@ -30,7 +31,7 @@ export default function MiTrabajo({ supabase, perfil, M, ordenes, registros, per
     setBusy(false);
     if (error) return avisar('No se pudo registrar: ' + error.message);
     setQty((x) => ({ ...x, [o.id + s]: '' }));
-    recargar.ordenes(); recargar.registros();
+    recargar.ordenes(); recargar.registros(); revisarNovedades();
     if (ini) fijarInicio(key, M.doneOf(o, s) + real >= M.tot(o, s) ? null : new Date().toISOString()); // sigue contando el siguiente paquete
     const n = data?.registrado || 0;
     const rid = data?.registro_id;

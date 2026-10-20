@@ -1,4 +1,5 @@
 'use client';
+import { revisarNovedades } from '@/lib/avisos';
 import { useState } from 'react';
 import { CATEGORIAS, UNIDADES, usd } from '@/lib/costos';
 
@@ -25,7 +26,7 @@ export default function Materiales({ supabase, perfil, materiales, consumos, avi
   }
   async function actualizar(id, cambios) {
     const { error } = await supabase.from('materiales').update(cambios).eq('id', id);
-    if (error) avisar('No se pudo guardar: ' + error.message); else recargar.materiales();
+    if (error) avisar('No se pudo guardar: ' + error.message); else { recargar.materiales(); if ('stock' in cambios) revisarNovedades(); }
   }
   async function borrar(m) {
     if (consumos.some((c) => c.material_id === m.id)) return actualizar(m.id, { activo: false });
