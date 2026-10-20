@@ -1,6 +1,6 @@
 'use client';
 export function Pill({ M, o }) {
-  if (o.estado === 'espera') return <span className="pill espera">Por activar · falta la OC</span>;
+  if (o.estado === 'espera') return <span className="pill espera">Por enviar la orden de producción</span>;
   const s = M.status[o.id];
   if (!s) return null;
   if (s.est === 'entregado') return <span className="pill gris">Entregado</span>;

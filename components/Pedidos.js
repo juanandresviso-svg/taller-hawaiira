@@ -5,7 +5,10 @@ import { Pill, decoTexto } from './ui';
 import NuevoProducto from './NuevoProducto';
 import Salida from './Salida';
 import Importar from './Importar';
-import { subirOC, verOC, OC_TIPOS } from '@/lib/oc';
+import { verOC } from '@/lib/oc';
+import { usd } from '@/lib/costos';
+import OCLector from './OCLector';
+import EnviarOP from './EnviarOP';
 import { revisarNovedades } from '@/lib/avisos';
 import { pasosDe, cotizacionDe } from '@/lib/proceso';
 import Seguimiento from './Seguimiento';
@@ -18,7 +21,7 @@ function nuevoCodigo(ordenes) {
   return 'OP-' + String(m + 1).padStart(4, '0');
 }
 
-export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materiales, consumos, veMateriales, veCostos, cotizaciones, hitos = [], documentos = [], avisar, recargar }) {
+export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materiales, consumos, veMateriales, veCostos, cotizaciones, hitos = [], documentos = [], clientes = [], registros = [], config, avisar, recargar }) {
   const [filtro, setFiltro] = useState('activos');
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
@@ -27,17 +30,18 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
   const [importando, setImportando] = useState(false);
   const [nuevoProd, setNuevoProd] = useState(false);
   const [salida, setSalida] = useState(null);
-  const [ocFile, setOcFile] = useState(null);
-  const [ocPara, setOcPara] = useState(null); // pedido al que se le está subiendo la OC
-  const [ocNum, setOcNum] = useState('');
+  const [desdeOC, setDesdeOC] = useState(false);   // nuevo pedido a partir de la orden de compra
+  const [ocPre, setOcPre] = useState(null);         // OC ya leída para el pedido nuevo
+  const [enviando, setEnviando] = useState(null);   // { id, reenviar }: panel de enviar la orden de producción
+  const ctxEquipo = { M, perfiles, registros, config };
   const puede = EDITAN.includes(perfil.rol);
 
   // Seguimiento del flujo de cada pedido (pasos cumplidos, próximo paso y documentos en Drive)
-  const hitosDe = {}, docsDe = {};
-  hitos.forEach((h) => { if (h.orden_id) (hitosDe[h.orden_id] = hitosDe[h.orden_id] || []).push(h); });
+  const hitosDe = {}, hitosCotDe = {}, docsDe = {};
+  hitos.forEach((h) => { if (h.orden_id) (hitosDe[h.orden_id] = hitosDe[h.orden_id] || []).push(h); if (h.cotizacion_id) (hitosCotDe[h.cotizacion_id] = hitosCotDe[h.cotizacion_id] || []).push(h); });
   documentos.forEach((d) => { if (d.orden_id) (docsDe[d.orden_id] = docsDe[d.orden_id] || []).push(d); });
   const SEG = {};
-  ordenes.forEach((o) => { SEG[o.id] = pasosDe(o, { M, hitos: hitosDe[o.id] || [], cot: veCostos ? cotizacionDe(o, cotizaciones) : undefined }); });
+  ordenes.forEach((o) => { SEG[o.id] = pasosDe(o, { M, hitos: hitosDe[o.id] || [], hitosCot: hitosCotDe[o.cotizacionId] || [], cot: veCostos ? cotizacionDe(o, cotizaciones) : undefined }); });
 
   let list = ordenes.slice();
   const enEspera = ordenes.filter((o) => o.estado === 'espera');
@@ -75,41 +79,46 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
       ...draft, cliente: String(draft.cliente).trim(), cantidad: q, monto: +draft.monto || 0,
       deco: { tipo: draft.deco.tipo || 'ninguna', colores: Math.max(1, +draft.deco.colores || 1), ubicaciones: Math.max(1, +draft.deco.ubicaciones || 1), ...(draft.deco.tipo === 'bordado' ? { bordadoModo: draft.deco.bordadoModo === 'externo' ? 'externo' : 'interno' } : {}) },
     });
-    body.oc_numero = String(draft.ocNumero || '').trim();
-    let oc = null;
-    if (ocFile) {
-      setBusy(true);
-      const r = await subirOC(supabase, ocFile, { referencia: draft.codigo, numero: body.oc_numero, perfilId: perfil.id });
-      setBusy(false);
-      if (r.error) return setErr(r.error);
-      oc = r.campos;
-      if (draft.id && draft.estado !== 'espera') { delete oc.estado; delete oc.activado; } // reemplaza la OC de un pedido ya activo
-    }
+    if (!draft.id && ocPre) Object.assign(body, ocPre);
     const ok = draft.id
-      ? await run(() => supabase.from('ordenes').update({ ...body, ...(oc || {}) }).eq('id', draft.id), oc && draft.estado === 'espera' ? `Pedido ${draft.codigo} activado con la orden de compra.` : 'Pedido actualizado.')
-      : await run(() => supabase.from('ordenes').insert({ ...body, ...(oc || { estado: 'espera' }), creado_por: perfil.id }),
-        oc ? `Pedido ${draft.codigo} creado y activado con la orden de compra.` : `Pedido ${draft.codigo} creado. Queda por activar hasta que subas la orden de compra del cliente.`);
-    if (ok) { setDraft(null); setErr(''); setOcFile(null); }
+      ? await run(() => supabase.from('ordenes').update(body).eq('id', draft.id), 'Pedido actualizado.')
+      : await run(() => supabase.from('ordenes').insert({ ...body, estado: 'espera', creado_por: perfil.id }),
+        `Pedido ${draft.codigo} creado. Para que entre en el plan del taller, pulsa "Enviar orden de producción".`);
+    if (ok) { setDraft(null); setErr(''); setOcPre(null); }
   }
 
   return (
     <>
       <div className="toolbar">
         <div className="chips" style={{ margin: 0 }}>
-          {[['activos', 'Activos'], ['espera', `Por activar${enEspera.length ? ' (' + enEspera.length + ')' : ''}`], ['cobrar', `Por cobrar${porCobrar.length ? ' (' + porCobrar.length + ')' : ''}`], ['entregados', 'Entregados'], ['todos', 'Todos']].map(([k, v]) => (
+          {[['activos', 'Activos'], ['espera', `Por enviar OP${enEspera.length ? ' (' + enEspera.length + ')' : ''}`], ['cobrar', `Por cobrar${porCobrar.length ? ' (' + porCobrar.length + ')' : ''}`], ['entregados', 'Entregados'], ['todos', 'Todos']].map(([k, v]) => (
             <button key={k} className="chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{v}</button>
           ))}
         </div>
-        {puede && <div className="acts" style={{ marginLeft: 0 }}><button className="btn" data-tour="importar" onClick={() => { setDraft(null); setImportando(true); window.scrollTo(0, 0); }}>Importar pedidos</button><button className="btn primary" data-tour="nuevo-pedido" onClick={() => { setErr(''); setOcFile(null); setDraft({ ocNumero: '', codigo: nuevoCodigo(ordenes), cliente: '', responsableId: perfil.id, producto: 'franela', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, fechaCompromiso: '', monto: '', notas: '', arteAprobado: false, materialListo: false, anticipo: false }); window.scrollTo(0, 0); }}>Nuevo pedido</button></div>}
+        {puede && <div className="acts" style={{ marginLeft: 0 }}><button className="btn" data-tour="importar" onClick={() => { setDraft(null); setImportando(true); window.scrollTo(0, 0); }}>Importar pedidos</button><button className="btn" data-tour="desde-oc" onClick={() => { setErr(''); setDraft(null); setOcPre(null); setDesdeOC(true); window.scrollTo(0, 0); }}>Nuevo pedido desde OC</button><button className="btn primary" data-tour="nuevo-pedido" onClick={() => { setErr(''); setOcPre(null); setDesdeOC(false); setDraft({ codigo: nuevoCodigo(ordenes), cliente: '', responsableId: perfil.id, producto: 'franela', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, fechaCompromiso: '', monto: '', notas: '', arteAprobado: false, materialListo: false, anticipo: false }); window.scrollTo(0, 0); }}>Nuevo pedido</button></div>}
       </div>
 
       {importando && <Importar supabase={supabase} perfil={perfil} M={M} ordenes={ordenes} perfiles={perfiles} avisar={avisar} onClose={() => setImportando(false)} />}
+
+      {desdeOC && !draft && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginBottom: 8 }}>Nuevo pedido desde la orden de compra</h3>
+          <OCLector supabase={supabase} perfil={perfil} referencia={nuevoCodigo(ordenes)} textoListo="Crear el pedido con estos datos"
+            onCancel={() => setDesdeOC(false)}
+            onListo={(r) => {
+              const a = r.aplicar, items = (r.datos.items || []).map((i) => [i.descripcion, i.cantidad != null ? '× ' + i.cantidad : ''].filter(Boolean).join(' ')).join(' · ');
+              setOcPre(r.campos); setDesdeOC(false);
+              setDraft({ ...{ codigo: nuevoCodigo(ordenes), cliente: '', responsableId: perfil.id, producto: 'franela', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, fechaCompromiso: '', monto: '', notas: '', arteAprobado: false, materialListo: false, anticipo: false }, cliente: a.cliente || '', cantidad: a.cantidad || '', monto: a.monto || '', fechaCompromiso: a.fechaCompromiso || '', tallas: a.tallas || '', notas: [r.campos.oc_numero ? 'OC ' + r.campos.oc_numero : '', items].filter(Boolean).join(' · ') });
+            }} />
+        </div>
+      )}
 
       {draft && (
         <form className="card" style={{ marginBottom: 16 }} onSubmit={guardar} noValidate>
           <h3 style={{ marginBottom: 12 }}>{draft.id ? 'Editar ' + draft.codigo : 'Nuevo pedido · ' + draft.codigo}</h3>
           <div className="fgrid">
-            <label className="f">Cliente<input id="f-cliente" value={draft.cliente} onChange={(e) => set('cliente', e.target.value)} autoComplete="off" /></label>
+            <label className="f">Cliente<input id="f-cliente" list="lista-clientes" value={draft.cliente} onChange={(e) => set('cliente', e.target.value)} autoComplete="off" /></label>
+            <datalist id="lista-clientes">{clientes.map((c) => <option key={c.id} value={c.nombre} />)}</datalist>
             <label className="f">Dueño del pedido
               <select id="f-resp" value={draft.responsableId || ''} onChange={(e) => set('responsableId', e.target.value)}>
                 <option value="">—</option>
@@ -148,14 +157,9 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                 onCreado={async (clave, nombre) => { await recargar.config(); set('producto', clave); setNuevoProd(false); avisar(`Producto "${nombre}" creado.`); }} />
             </div>
           )}
-          {(!draft.id || draft.estado === 'espera' || !draft.ocArchivo) && (
-            <div className="subcard" style={{ marginTop: 12 }} data-tour="oc">
-              <b className="small">Orden de compra del cliente</b>
-              <div className="fgrid" style={{ marginTop: 8 }}>
-                <label className="f">N.º de OC<input id="f-ocnum" placeholder="Ej. 4500123" value={draft.ocNumero || ''} onChange={(e) => set('ocNumero', e.target.value)} /></label>
-                <label className="f">Archivo (PDF o foto)<input id="f-ocfile" type="file" accept={OC_TIPOS} onChange={(e) => setOcFile(e.target.files[0] || null)} /></label>
-              </div>
-              <p className="small muted" style={{ marginBottom: 0 }}>{ocFile ? 'El pedido se activa y entra en el plan del taller al guardar.' : draft.estado === 'activo' ? 'Opcional: adjunta la OC de este pedido.' : 'Sin la OC el pedido queda "por activar": se guarda, pero no entra en el plan del taller hasta que la subas.'}</p>
+          {ocPre && (
+            <div className="subcard small" style={{ marginTop: 12 }}>
+              Orden de compra adjunta{ocPre.oc_numero ? <> <b>{ocPre.oc_numero}</b></> : null}{ocPre.oc_unidades != null ? ` · ${nf.format(ocPre.oc_unidades)} unidades` : ''}{ocPre.oc_monto != null ? ` · ${usd.format(ocPre.oc_monto)}` : ''}. Revisa producto, estampado y fecha, y guarda. Luego envía la orden de producción.
             </div>
           )}
           <label className="f" style={{ marginTop: 12 }}>Notas<textarea id="f-notas" rows={2} value={draft.notas} onChange={(e) => set('notas', e.target.value)} /></label>
@@ -166,8 +170,8 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
           </div>
           {err && <div className="err" role="alert">{err}</div>}
           <div className="formacts">
-            <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Guardando…' : draft.id ? 'Guardar cambios' : ocFile ? 'Crear y activar pedido' : 'Crear pedido (por activar)'}</button>
-            <button className="btn" type="button" onClick={() => { setDraft(null); setOcFile(null); }}>Cancelar</button>
+            <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Guardando…' : draft.id ? 'Guardar cambios' : 'Crear pedido'}</button>
+            <button className="btn" type="button" onClick={() => { setDraft(null); setOcPre(null); }}>Cancelar</button>
           </div>
         </form>
       )}
@@ -201,31 +205,14 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                   {ent && o.entregado && <span>Entregado: <b>{fd(new Date(o.entregado))}</b></span>}
                 </div>
                 {o.notas && <div className="small muted">{o.notas}</div>}
-                {(esp || o.ocArchivo) && (
+                {(o.ocArchivo || o.ocNumero) && (
                   <div className="oc">
-                    {o.ocArchivo
-                      ? <><span>Orden de compra{o.ocNumero ? <> <b>{o.ocNumero}</b></> : null} · subida {fd(new Date(o.ocSubida))}</span><button className="btn sm" onClick={async () => { const e = await verOC(supabase, o.ocArchivo); if (e) avisar('No se pudo abrir la OC: ' + e); }}>Ver OC</button></>
-                      : <span className="falta">Falta la orden de compra del cliente: no entra en el plan del taller.</span>}
-                    {esp && puede && ocPara !== o.id && <button className="btn sm primary" onClick={() => { setOcPara(o.id); setOcNum(o.ocNumero || ''); }}>Subir OC y activar</button>}
+                    <span>Orden de compra{o.ocNumero ? <> <b>{o.ocNumero}</b></> : null}{o.ocUnidades != null ? <> · <b>{nf.format(o.ocUnidades)}</b> unidades</> : null}{o.ocMonto != null ? <> · <b>{usd.format(o.ocMonto)}</b></> : null}{o.ocUnidades != null && o.ocUnidades !== o.cantidad ? <span className="falta"> · el pedido tiene {nf.format(o.cantidad)}</span> : null}</span>
+                    {o.ocArchivo && <button className="btn sm" onClick={async () => { const e = await verOC(supabase, o.ocArchivo); if (e) avisar('No se pudo abrir la OC: ' + e); }}>Ver OC</button>}
                   </div>
                 )}
-                {ocPara === o.id && (
-                  <form className="subcard" onSubmit={async (e) => {
-                    e.preventDefault();
-                    const f = e.currentTarget.elements.ocfile.files[0];
-                    setBusy(true);
-                    const r2 = await subirOC(supabase, f, { referencia: o.codigo, numero: ocNum, perfilId: perfil.id });
-                    setBusy(false);
-                    if (r2.error) return avisar(r2.error);
-                    if (await run(() => supabase.from('ordenes').update(r2.campos).eq('id', o.id), `${o.codigo} activado: ya entra en el plan del taller.`)) setOcPara(null);
-                  }}>
-                    <div className="fgrid">
-                      <label className="f">N.º de OC<input value={ocNum} onChange={(e) => setOcNum(e.target.value)} placeholder="Ej. 4500123" /></label>
-                      <label className="f">Archivo (PDF o foto)<input name="ocfile" type="file" accept={OC_TIPOS} required /></label>
-                    </div>
-                    <div className="formacts"><button className="btn sm primary" disabled={busy} type="submit">{busy ? 'Subiendo…' : 'Subir y activar'}</button><button className="btn sm" type="button" onClick={() => setOcPara(null)}>Cancelar</button></div>
-                  </form>
-                )}
+                {esp && !(enviando && enviando.id === o.id) && <div className="oc"><span className="falta">Falta enviar la orden de producción: el pedido no entra en el plan del taller.</span>{puede && <button className="btn sm primary" onClick={() => setEnviando({ id: o.id, reenviar: false })}>Enviar orden de producción</button>}</div>}
+                {enviando && enviando.id === o.id && <EnviarOP o={o} supabase={supabase} perfil={perfil} M={M} perfiles={perfiles} registros={registros} config={config} avisar={avisar} recargar={recargar} reenviar={enviando.reenviar} onClose={() => setEnviando(null)} />}
                 <div className="flags">
                   {!ent && [['arteAprobado', 'arte_aprobado', 'Arte aprobado', r.includes('preprensa')], ['materialListo', 'material_listo', 'Material listo', true], ['anticipo', 'anticipo', 'Anticipo', true]].filter((x) => x[3]).map(([k, col, l]) => (
                     <button key={k} className={'flag ' + (o[k] ? 'yes' : 'no')} disabled={!puede || busy} aria-pressed={!!o[k]}
@@ -235,20 +222,18 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                     <div className="acts">
                       {cf ? (
                         <>
-                          <span className="small muted">{cf === 'entregar' ? '¿Marcar como entregado?' : cf === 'activar' ? '¿Activar sin orden de compra?' : '¿Eliminar este pedido y sus registros?'}</span>
+                          <span className="small muted">{cf === 'entregar' ? '¿Marcar como entregado?' : '¿Eliminar este pedido y sus registros?'}</span>
                           <button className={'btn sm ' + (cf === 'borrar' ? 'danger' : 'primary')} disabled={busy} onClick={async () => {
                             setConfirm(null);
                             if (cf === 'entregar') await run(() => supabase.from('ordenes').update({ estado: 'entregado', entregado: new Date().toISOString() }).eq('id', o.id), 'Pedido entregado: sus tiempos reales ya cuentan en los tiempos de producción. El informe está en el botón Informe.');
-                            else if (cf === 'activar') await run(() => supabase.from('ordenes').update({ estado: 'activo', activado: new Date().toISOString() }).eq('id', o.id), `${o.codigo} activado sin orden de compra.`);
                             else await run(() => supabase.from('ordenes').delete().eq('id', o.id), 'Pedido eliminado.');
-                          }}>Sí, {cf === 'entregar' ? 'entregado' : cf === 'activar' ? 'activar' : 'eliminar'}</button>
+                          }}>Sí, {cf === 'entregar' ? 'entregado' : 'eliminar'}</button>
                           <button className="btn sm" onClick={() => setConfirm(null)}>No</button>
                         </>
                       ) : (
                         <>
                           {!ent && <button className="btn sm" onClick={() => { setErr(''); setOcFile(null); setDraft(structuredClone(o)); window.scrollTo(0, 0); }}>Editar</button>}
                           {!ent && !esp && <button className="btn sm" onClick={() => setConfirm({ id: o.id, a: 'entregar' })}>Marcar entregado</button>}
-                          {esp && perfil.rol === 'direccion' && <button className="btn sm" onClick={() => setConfirm({ id: o.id, a: 'activar' })}>Activar sin OC</button>}
                           {ent && <button className="btn sm" onClick={() => run(() => supabase.from('ordenes').update({ estado: 'activo', entregado: null }).eq('id', o.id), 'Pedido reactivado.')}>Reactivar</button>}
                           {!esp && <a className="btn sm" href={'/informe/' + o.id} target="_blank" rel="noreferrer">Informe</a>}
                           {veMateriales && !ent && <button className="btn sm" onClick={() => setSalida(salida === o.id ? null : o.id)}>Salida de material</button>}
@@ -258,13 +243,13 @@ export default function Pedidos({ supabase, perfil, M, ordenes, perfiles, materi
                     </div>
                   )}
                 </div>
-                <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} />
+                <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} ctx={ctxEquipo} onEnviarOP={puede ? (reenviar) => setEnviando({ id: o.id, reenviar }) : null} />
                 {salida === o.id && <Salida supabase={supabase} orden={o} materiales={materiales} consumos={consumos} avisar={avisar} onClose={() => setSalida(null)} puedeBorrar={['direccion', 'jefa', 'admin'].includes(perfil.rol)} />}
               </article>
             );
           })}
         </div>
-      ) : <div className="empty">{filtro === 'activos' ? 'No hay pedidos activos. Crea el primero con "Nuevo pedido".' : filtro === 'espera' ? 'No hay pedidos esperando orden de compra.' : filtro === 'cobrar' ? 'No hay pedidos entregados pendientes de cobro.' : 'No hay pedidos en esta vista.'}</div>}
+      ) : <div className="empty">{filtro === 'activos' ? 'No hay pedidos activos. Crea el primero con "Nuevo pedido".' : filtro === 'espera' ? 'No hay pedidos esperando la orden de producción.' : filtro === 'cobrar' ? 'No hay pedidos entregados pendientes de cobro.' : 'No hay pedidos en esta vista.'}</div>}
     </>
   );
 }

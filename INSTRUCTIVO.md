@@ -96,6 +96,7 @@ Guarda:
 7. Repite los pasos 1 a 4 con `supabase/migracion-04-avisos-oc.sql` (notificaciones push y orden de compra del cliente; crea también la carpeta privada `ordenes-compra` en **Storage**).
 8. Repite los pasos 1 a 4 con `supabase/migracion-05-enlaces.sql` (enlaces de invitación por rol).
 9. Repite los pasos 1 a 4 con `supabase/migracion-06-seguimiento-drive.sql` (seguimiento del flujo del pedido paso a paso y exportación de documentos a Google Drive).
+10. Repite los pasos 1 a 4 con `supabase/migracion-07-clientes-oc-trazabilidad.sql` (clientes y sus estadísticas, datos leídos de la orden de compra, envío de la orden de producción y los 31 pasos del flujograma). Crea los clientes de los pedidos y cotizaciones que ya existen.
 
 > Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 
@@ -267,7 +268,7 @@ Taller Hawaiira · Documentos/
     └── OP-0012 · Cliente/
         ├── 01 Cotización COT-0007.pdf        (al aprobar la cotización)
         ├── 02 Orden de compra del cliente     (copia de la OC que se subió)
-        ├── 03 Orden de producción OP-0012.pdf (al activar el pedido)
+        ├── 03 Orden de producción OP-0012.pdf (al enviar la orden de producción)
         ├── 04 Nota de entrega OP-0012.pdf     (al terminar el empaque o al marcar entregado)
         └── 05 Informe de cierre OP-0012.pdf   (al marcar "Saldo cobrado")
 ```
@@ -315,6 +316,18 @@ Se usa el **Gmail del taller** (paso 1). La app pide el permiso más limitado de
 4. Pulsa **Abrir carpeta** y **Abrir hoja de seguimiento** para verlas. Comparte la carpeta desde Drive con quien deba consultarla (solo lectura recomendada).
 
 Desde ese momento la app sincroniza sola después de cada cambio y una vez al día con el resumen. Los pedidos entregados antes de activar el seguimiento se consideran cerrados y no se exportan.
+
+### 4.7 Lectura de la orden de compra con inteligencia artificial (una sola vez)
+
+La app lee el PDF o la foto de la orden de compra del cliente (número de OC, unidades, monto a pagar, fecha de entrega, tallas) con Claude, de Anthropic. Sin esta clave todo funciona igual, pero los datos de la OC se escriben a mano.
+
+1. Entra a **console.anthropic.com** con el correo del taller y crea la cuenta.
+2. **Billing** (Facturación): agrega una tarjeta y una recarga pequeña (por ejemplo US$ 5). Cada OC cuesta del orden de 1 a 3 centavos de dólar.
+3. **API Keys → Create Key** → nombre `Taller Hawaiira` → copia la clave (empieza por `sk-ant-`). Solo se muestra una vez.
+4. En **Vercel → Settings → Environment Variables** agrega `ANTHROPIC_API_KEY` con esa clave → **Redeploy**.
+5. Prueba: **Pedidos → Nuevo pedido desde OC** → sube una OC → **Subir y leer**. En unos segundos aparecen los datos marcados como *leído*.
+
+> Opcional: `ANTHROPIC_MODEL` para usar otro modelo. Si lo dejas vacío la app elige uno sola.
 
 ---
 
@@ -399,6 +412,10 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | La prueba de notificación no llega | Permiso bloqueado en el navegador o el sistema | Candado junto a la dirección → Notificaciones → Permitir. En Mac: Configuración del Sistema → Notificaciones → Chrome. Luego desactiva y vuelve a activar en la app. |
 | Error al subir la orden de compra | No se corrió la migración 04 | Corre `supabase/migracion-04-avisos-oc.sql` (paso 3.2). |
 | No aparece el seguimiento en los pedidos | No se corrió la migración 06 | Corre `supabase/migracion-06-seguimiento-drive.sql` (paso 3.2). |
+| La pestaña Clientes sale vacía o "Enviar orden de producción" da error | No se corrió la migración 07 | Corre `supabase/migracion-07-clientes-oc-trazabilidad.sql` (paso 3.2). |
+| "Falta la clave ANTHROPIC_API_KEY" al leer la OC | No se configuró la lectura con IA | Paso 4.7. Mientras tanto, escribe los datos de la OC a mano. |
+| "La clave ANTHROPIC_API_KEY no es válida" o la lectura falla siempre | Clave mal copiada o sin saldo | Crea otra clave en console.anthropic.com, revisa el saldo en Billing y pulsa **Redeploy**. |
+| El correo de la orden de producción llega sin PDF | Google Drive no está conectado | Conecta Drive (paso 4.6). Sin Drive la orden va en el cuerpo del correo. |
 | Ajustes → Google Drive dice "Falta configurar" | Faltan `GOOGLE_CLIENT_ID` o `GOOGLE_CLIENT_SECRET`, o no se redesplegó | Revisa el paso 4.6 B y pulsa **Redeploy**. |
 | Google no deja publicar: "OAuth configuration is incomplete… Branding page" | Faltan página principal, política de privacidad o dominio autorizado | Completa **Desarrollo de la marca** (paso 4.6 A.5) con `/acerca`, `/privacidad` y el dominio de Vercel, sin logo. |
 | Google dice `redirect_uri_mismatch` al conectar | La dirección de regreso no es idéntica a la registrada | Copia la que muestra **Ajustes → Google Drive** y pégala en Google Cloud → Clientes → URIs de redireccionamiento (paso 4.6 A.7). |
@@ -427,3 +444,4 @@ La app se instala desde el navegador, queda con el ícono de Hawaiira Studio en 
 | `VAPID_SUBJECT` | `mailto:` + Gmail del taller | Vercel |
 | Dirección de la app | Vercel, después del primer despliegue | Supabase → URL Configuration |
 | `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` | Google Cloud → Google Auth Platform → Clientes (paso 4.6) | Solo Vercel |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys (paso 4.7) | Solo Vercel |

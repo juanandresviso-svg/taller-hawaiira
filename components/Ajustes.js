@@ -4,6 +4,8 @@ import { cfgBase, estimarProducto, ETAPAS_PROD } from '@/lib/aprendizaje';
 import { nf, nf1 } from '@/lib/motor';
 import { GenerarClaves } from './Avisos';
 import DrivePanel from './DrivePanel';
+import Equipos from './Equipos';
+import { equiposDe } from '@/lib/equipo';
 
 const ETAPA_NOMBRE = { corte: 'Corte', costura: 'Costura', empaque: 'Empaque y revisión' };
 
@@ -21,7 +23,7 @@ function Resultado({ d, unidad = 'min/pza' }) {
 }
 
 export default function Ajustes({ supabase, perfil, config, A, avisar }) {
-  const [c, setC] = useState(() => structuredClone(cfgBase(config)));
+  const [c, setC] = useState(() => ({ ...structuredClone(cfgBase(config)), equipos: structuredClone(equiposDe(config)) }));
   const [busy, setBusy] = useState(false);
   const [nuevo, setNuevo] = useState('');
   const set = (path, val) => setC((d) => { const n = structuredClone(d); const ks = path.split('.'); let o = n; for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = val; return n; });
@@ -33,6 +35,7 @@ export default function Ajustes({ supabase, perfil, config, A, avisar }) {
     d.eficiencia = Math.min(100, Math.max(10, +d.eficiencia || 85));
     d.almuerzoMin = Math.max(0, +d.almuerzoMin || 0);
     d.deco.bordadoExternoDias = Math.max(0, +d.deco.bordadoExternoDias || 0);
+    d.equipos = (d.equipos || []).filter((e) => String(e.nombre || '').trim()).map((e) => ({ ...e, nombre: String(e.nombre).trim(), cantidad: Math.max(0, +e.cantidad || 0) }));
     const vacio = Object.values(d.productos).find((p) => !String(p.nombre || '').trim());
     if (vacio) return avisar('Hay un producto sin nombre. Escribe un nombre antes de guardar.');
     Object.values(d.productos).forEach((p) => { p.nombre = String(p.nombre).trim(); });
@@ -69,7 +72,13 @@ export default function Ajustes({ supabase, perfil, config, A, avisar }) {
       </div>
       <div className="formacts">
         <button className="btn primary" onClick={guardar} disabled={busy}>{busy ? 'Guardando…' : 'Guardar ajustes'}</button>
-        <button className="btn" onClick={() => setC(structuredClone(cfgBase(config)))}>Descartar cambios</button>
+        <button className="btn" onClick={() => setC({ ...structuredClone(cfgBase(config)), equipos: structuredClone(equiposDe(config)) })}>Descartar cambios</button>
+      </div>
+
+      <h2>Equipos y máquinas</h2>
+      <Equipos equipos={c.equipos || []} productos={c.productos} onChange={(v) => setC((x) => ({ ...x, equipos: v }))} />
+      <div className="formacts">
+        <button className="btn primary" onClick={guardar} disabled={busy}>{busy ? 'Guardando…' : 'Guardar equipos'}</button>
       </div>
 
       <h2>Tiempos de producción (resultado)</h2>

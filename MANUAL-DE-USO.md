@@ -95,20 +95,20 @@ Dirección, jefe(a) de taller, administración, compras y diseño pueden crear y
    - **Fecha comprometida:** la que le prometiste al cliente.
    - **Monto** (opcional) y **notas.**
 3. Marca lo que ya esté listo: **Arte aprobado**, **Material listo**, **Anticipo recibido**.
-4. **Orden de compra del cliente:** escribe el número de la OC y adjunta el archivo (PDF o foto, hasta 10 MB).
-5. Pulsa **Crear y activar pedido** (con OC) o **Crear pedido (por activar)** (sin OC).
+4. Pulsa **Crear pedido**. Queda en **Por enviar OP**.
 
-El código (OP-0001, OP-0002…) se asigna solo. Apenas lo creas, la app calcula la **fecha proyectada** según la carga real del taller. Si sale en rojo, revisa la fecha con el cliente antes de confirmarla.
+Si tienes la orden de compra del cliente, es más rápido **Nuevo pedido desde OC**: subes el PDF o la foto, la app la lee y llena cliente, unidades, monto, fecha y tallas; revisas, completas producto y estampado, y guardas.
 
-### Orden de compra: lo que activa un pedido
+El código (OP-0001, OP-0002…) se asigna solo.
 
-Un pedido solo entra en el plan del taller cuando tiene la **orden de compra (OC) del cliente**.
+### La orden de producción: lo que pone un pedido en marcha
 
-- **Sin OC** el pedido queda **Por activar** (etiqueta naranja). Se ve en Pedidos y en el Tablero, pero no aparece en *Mi trabajo*, no ocupa capacidad y no tiene fecha proyectada.
-- **Para activarlo:** **Pedidos → Por activar → Subir OC y activar**, escribe el número, elige el archivo y pulsa **Subir y activar**. Desde ese momento entra en el plan y se avisa a jefe de taller, compras y al dueño del pedido.
-- **Ver la OC:** botón **Ver OC** en el pedido. Se abre en una pestaña nueva.
-- **Cotizaciones aprobadas:** al pulsar **Aprobada → crear pedidos** puedes adjuntar la OC; si lo haces, los pedidos se crean activos. Si no, quedan por activar.
-- **Excepción:** dirección puede pulsar **Activar sin OC** (por ejemplo, un cliente de confianza que manda la OC después). Los pedidos importados desde Excel entran activos.
+Un pedido solo entra en el plan del taller cuando se **envía su orden de producción** (botón **Enviar orden de producción**, ver más abajo).
+
+- Mientras tanto queda **Por enviar la orden de producción** (etiqueta naranja): se ve en Pedidos y en el Tablero, pero no aparece en *Mi trabajo*, no ocupa capacidad y no tiene fecha proyectada.
+- Para enviarla hace falta la **orden de compra (OC) del cliente**. Dirección puede enviarla sin OC (cliente de confianza que la manda después).
+- **Ver la OC:** botón **Ver OC** en el pedido. Junto al número aparecen las unidades y el monto leídos; si las unidades no coinciden con el pedido, se marca en naranja.
+- Los pedidos importados desde Excel entran activos.
 
 ### Importar varios pedidos desde Excel
 
@@ -128,7 +128,7 @@ Un pedido solo entra en el plan del taller cuando tiene la **orden de compra (OC
 | 🟡 Justo | Cualquier retraso lo vuelve tarde |
 | 🔴 Tarde | Con la carga actual no llega a la fecha |
 | 🔵 Listo para despachar | Todas las etapas terminadas |
-| 🟠 Por activar · falta la OC | Espera la orden de compra del cliente |
+| 🟠 Por enviar la orden de producción | Falta enviar la orden de producción al taller |
 
 ### Botones de cada pedido
 
@@ -154,35 +154,63 @@ En **Estampado** elige **Bordado** y luego **¿Quién borda?**:
 
 Cada vez que salga material del almacén para un pedido (tela, hilo, etiquetas, tinta…), pulsa **Salida de material** en ese pedido, elige el material y la cantidad. El stock baja solo y el costo real del pedido se actualiza. Lo pueden hacer compras, administración, el jefe de taller y dirección.
 
-## Seguimiento del flujo del pedido
+## Del pedido a la orden de producción
 
-Cada pedido sigue el flujograma del taller, de la cotización al cobro, en 5 fases: **Cotización → Aprobación y arte → Planificación y compras → Producción y calidad → Entrega y cobro**.
+1. **Cotización aprobada** (Costos → Cotizaciones → *Aprobada → crear pedidos*): elige la fecha comprometida y, si ya la tienes, pulsa **Adjuntar y leer la orden de compra**. Se crean los pedidos, que quedan en **Pedidos → Por enviar OP**.
+2. **Pedido sin cotización**: **Nuevo pedido desde OC** (sube la OC y la app llena cliente, unidades, monto, fecha y tallas) o **Nuevo pedido** (a mano).
+3. **Enviar orden de producción** (botón en el pedido):
+   - **Orden de compra**: sube el PDF o la foto y pulsa **Subir y leer**. Revisa cada dato: *leído* salió del documento, *corregido* lo cambiaste tú y *falta* no aparece en la OC. Si la OC no coincide con el pedido (unidades, monto o fecha), marca qué dato quieres usar.
+   - **Equipo sugerido**: para cada etapa, la fecha de inicio, las personas de la estación con menos carga y las máquinas que se usan.
+   - **Avisar**: notificación en la app y correo con el PDF al jefe de taller, a compras y al dueño del pedido. Al terminar aparece **Compartir por WhatsApp**.
+   - Desde ese momento el pedido entra en el plan del taller y la orden de producción queda en su carpeta de Google Drive.
 
-En cada tarjeta de **Pedidos** la barra de colores muestra la fase (verde azulado: cumplida; naranja: la actual) y debajo el **próximo paso** con su responsable. Pulsa **Seguimiento** para ver todos los pasos con la fecha, quién lo hizo y el documento guardado en Google Drive.
+Si la lectura falla o no hay clave de IA, escribe los datos a mano con **Escribir los datos sin documento**.
 
-| Paso | Responsable | Cómo se cumple | Documento en Drive |
+## Trazabilidad: los 31 pasos del flujograma
+
+Cada pedido dice en qué **paso del flujograma** va (por ejemplo *paso 14 de 31*) y quién es el responsable. Pulsa **Trazabilidad** para ver los 31 pasos con la fecha, quién lo hizo, la nota y los documentos en Drive. Los pasos 1 a 8 son de la cotización y también se ven en cada cotización.
+
+| # | Paso | Responsable | Cómo se cumple |
 |---|---|---|---|
-| Cotización enviada al cliente | Comercial | Sola, al pasar la cotización a *Enviada* | 01 Cotización |
-| Cliente acepta la cotización | Comercial | Sola, al aprobar la cotización | — |
-| Orden de compra recibida | Comercial | Sola, al subir la OC (o activar sin OC) | 02 Orden de compra |
-| Anticipo recibido | Administración | Botón **Anticipo** o **Marcar** en Seguimiento | — |
-| Arte final aprobado | Diseño | Botón **Arte aprobado** (solo si lleva estampado) | — |
-| Orden de producción emitida | Planificación | Sola, al activar el pedido | 03 Orden de producción |
-| Material listo en almacén | Compras | Botón **Material listo** | — |
-| Producción terminada | Producción | Sola, cuando corte, estampado y costura registran todo | — |
-| Control de calidad aprobado | Jefe(a) de taller | **Marcar hecho** en Seguimiento | — |
-| Inspección final y empaque | Empaque | Sola, cuando empaque registra todo | 04 Nota de entrega |
-| Entregado al cliente | Despacho | Botón **Marcar entregado** | — |
-| Saldo facturado | Administración | **Marcar hecho** (anota el n.º de factura) | — |
-| Saldo cobrado · pedido cerrado | Administración | **Marcar hecho** (anota la referencia del pago) | 05 Informe de cierre |
+| 1–2 | Solicitud de cotización registrada | Comercial | Sola, al crear la cotización |
+| 3 | Ficha técnica preliminar y mockup | Diseño | **Marcar** |
+| 4 | Costo y precio calculados | Comercial | Sola |
+| 5 | Dirección aprueba precio, descuento y fecha | Dirección | **Aprobar** en la cotización |
+| 6 | Cotización enviada | Comercial | Sola, al marcarla *Enviada* (PDF a Drive) |
+| 7 | Cliente acepta | Cliente | Sola, al aprobarla |
+| 8 | Cierre por rechazo | Comercial | Sola, si se rechaza |
+| 9 | Proforma de anticipo | Administración | **Marcar hecho** (n.º de proforma) |
+| 10–11 | Anticipo pagado y recibido | Administración | Botón **Anticipo** |
+| 12 | Arte final y archivos de producción | Diseño | **Marcar hecho** |
+| 13 | Cliente aprueba el arte | Diseño | Botón **Arte aprobado** |
+| 14 | Orden de producción enviada al taller | Planificación | **Enviar orden de producción** (OC y OP a Drive) |
+| 15 | Revisión de material | Compras | **Hay material** o **Falta: hay que comprar** |
+| 16–18 | Compra, pago al proveedor y recepción | Compras / Administración | **Marcar hecho** (solo si faltaba material) |
+| 19 | Material reservado · OP liberada | Compras | Botón **Material listo** |
+| 20–22 | Corte, costura y estampado terminados | Producción | Solos, con los registros de Mi trabajo |
+| 23 | Control de calidad | Jefe(a) de taller | **Marcar hecho** |
+| 24 | Inspección final y empaque | Empaque | Sola (genera la nota de entrega) |
+| 25 | Cliente avisado | Dueño del pedido | **Marcar hecho** |
+| 26 | Entregado con nota de entrega | Despacho | **Marcar entregado** |
+| 27 | Cliente firma conformidad | Dueño / Administración | **Marcar hecho** (quién recibió) |
+| 28 | Saldo facturado | Administración | **Marcar hecho** (n.º de factura) |
+| 29–31 | Saldo cobrado y OP cerrada | Administración | **Marcar hecho** el 29 (genera el informe de cierre) |
 
-- Los pasos que se marcan a mano solo los puede marcar su responsable (y Dirección). Si te equivocas, pulsa **Quitar**.
-- El filtro **Por cobrar** muestra los pedidos entregados que aún no se cobran. Si pasan 3 días sin cobrar, Administración recibe una alerta.
-- En el **Tablero**, *Flujo de pedidos* muestra cuántos pedidos hay en cada fase y la lista de pasos que le tocan a tu cargo.
+- Cada quien solo marca los pasos de su cargo (Dirección puede todos). Si te equivocas, pulsa **Quitar**.
+- El filtro **Por cobrar** muestra los entregados sin cobrar. Si pasan 3 días, Administración recibe una alerta.
+- En el **Tablero**, *Flujo de pedidos* muestra cuántos pedidos hay en cada fase y los pasos que le tocan a tu cargo.
 
 ### Documentos en Google Drive
 
-Con Google Drive conectado (Ajustes → Google Drive, lo hace Dirección una vez), la app guarda sola los documentos de cada paso importante en la carpeta **Taller Hawaiira · Documentos → Pedidos → OP-xxxx · Cliente**, y anota cada paso en la hoja **Seguimiento de pedidos** (pestaña *Estado de pedidos*: una fila por pedido con su fase y próximo paso; pestaña *Bitácora*: una fila por paso cumplido con fecha, responsable y enlace al documento). Nadie tiene que subir nada a mano: la nota de entrega sale lista para imprimir y firmar.
+Con Google Drive conectado, la app guarda sola en **Taller Hawaiira · Documentos → Pedidos → OP-xxxx · Cliente**: 01 Cotización, 02 Orden de compra, 03 Orden de producción (con el equipo sugerido), 04 Nota de entrega y 05 Informe de cierre. La hoja **Seguimiento de pedidos** tiene el estado de cada pedido (con su paso del flujograma) y la bitácora de los 31 pasos.
+
+## Clientes (dirección, jefe de taller y administración)
+
+Cada pedido y cotización queda ligado a su cliente automáticamente (el nombre se reconoce aunque cambien mayúsculas o acentos). En la pestaña **Clientes** ves por cliente: pedidos, unidades, vendido, ticket promedio, por cobrar, cotizaciones aprobadas, porcentaje de entregas a tiempo y último pedido. Toca un cliente para ver sus pedidos y cotizaciones y para completar RIF, contacto, teléfono, correo y dirección. Al escribir el cliente en un pedido o cotización, la app sugiere los que ya existen.
+
+## Equipos y máquinas (Ajustes)
+
+Lista de máquinas de cada etapa con su cantidad. "Solo para" limita una máquina a ciertos productos o estampados (por ejemplo, la ojaladora solo para chemises). Con esta lista y las personas de cada estación (Usuarios) se arma el equipo sugerido.
 
 ## Costos (dirección, jefe de taller y administración)
 
@@ -236,8 +264,8 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 |---|---|
 | **Producción** | Registrar piezas terminadas a lo largo del día. Revisar los recordatorios. |
 | **Diseño** | Conseguir la aprobación del arte y marcar **Arte aprobado**. Marcar **Preprensa lista**. |
-| **Compras** | Marcar **Material listo** cuando la tela y los avíos estén en el taller. Mantener precios y stock en **Materiales** y registrar las **salidas de material** de cada pedido. |
-| **Administración** | Marcar **Anticipo** al cobrar. Facturar y cobrar el saldo, y marcar **Saldo facturado** y **Saldo cobrado** en el Seguimiento (revisa el filtro **Por cobrar**). |
+| **Compras** | Al llegar una orden de producción, indicar si **hay material** o **falta** (paso 15), registrar la compra y la recepción, y marcar **Material listo** cuando la tela y los avíos estén en el taller. Mantener precios y stock en **Materiales** y registrar las **salidas de material** de cada pedido. |
+| **Administración** | Marcar la proforma (paso 9) y el **Anticipo** al cobrar. Pagar al proveedor cuando falte material. Facturar y cobrar el saldo, y marcarlos en la Trazabilidad (revisa el filtro **Por cobrar**). |
 | **Jefe(a) de taller** | Revisar el plan del día de todas las estaciones, atender las alertas "sin avance", marcar **Control de calidad aprobado** en el Seguimiento, corregir registros en **Mi trabajo → Registros recientes** y mantener los tiempos en **Ajustes**. |
 | **Dirección** | Todo lo anterior, más invitar y desactivar personas en **Usuarios**, revisar recomendaciones, eliminar pedidos y conectar **Google Drive** en Ajustes. |
 | **Dueño de cada pedido** | Mantener al cliente informado y renegociar la fecha si el pedido pasa a rojo. |

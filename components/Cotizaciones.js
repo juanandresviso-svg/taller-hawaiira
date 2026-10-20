@@ -4,7 +4,8 @@ import { usd, usd0 } from '@/lib/costos';
 import { DECO_NAME, fd, parseDay, isoDay, nf, pct, ordenADb } from '@/lib/motor';
 import { decoTexto } from './ui';
 import NuevoProducto from './NuevoProducto';
-import { subirOC, OC_TIPOS } from '@/lib/oc';
+import OCLector from './OCLector';
+import { evaluarPasos, claveHitoCot, puedeMarcar, TOTAL_PASOS } from '@/lib/proceso';
 import { revisarNovedades } from '@/lib/avisos';
 
 const ESTADO = { borrador: ['gris', 'Borrador'], enviada: ['listo', 'Enviada'], aprobada: ['verde', 'Aprobada'], rechazada: ['rojo', 'Rechazada'] };
@@ -17,14 +18,34 @@ function siguiente(lista, prefijo) {
 }
 const itemVacio = (prod) => ({ producto: prod, descripcion: '', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, precio: '', manual: false });
 
-export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaciones, documentos = [], avisar, recargar }) {
+// Pasos 1 a 8 del flujograma (cotización)
+function PasosCot({ c, M, hitos, perfil, supabase, avisar, recargar }) {
+  const S = evaluarPasos({ cot: c, M, hitos: hitos.filter((h) => h.cotizacion_id === c.id) });
+  const marcar = async (p) => {
+    const { error } = await supabase.from('hitos').insert({ clave: claveHitoCot(c.id, p.k), cotizacion_id: c.id, paso: p.k, nota: '', auto: false, por: perfil.id });
+    if (error) avisar('No se pudo guardar: ' + error.message); else { avisar(`${c.numero}: paso ${p.n} registrado.`); recargar.hitos && recargar.hitos(); revisarNovedades(); }
+  };
+  return (
+    <div className="pasos-cot">
+      {S.lista.filter((p) => !p.na).map((p) => (
+        <span key={p.k} className={'pc ' + (p.hecho ? 'hecho' : p.omitido ? 'omitido' : '')} title={p.nombre + ' · ' + p.cargo}>
+          <i>{p.hecho ? '✓' : p.n}</i>{p.nombre}
+          {!p.hecho && !p.omitido && p.modo === 'manual' && puedeMarcar(p, perfil) && <button className="btn sm link" onClick={() => marcar(p)}>{p.k === 'p05' ? 'Aprobar' : 'Marcar'}</button>}
+        </span>
+      ))}
+      <span className="small muted">Pasos 1 a 8 de {TOTAL_PASOS} del flujograma</span>
+    </div>
+  );
+}
+
+export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaciones, documentos = [], hitos = [], clientes = [], avisar, recargar }) {
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [aprobar, setAprobar] = useState(null);
   const [fechaAprob, setFechaAprob] = useState('');
-  const [ocFile, setOcFile] = useState(null);
-  const [ocNum, setOcNum] = useState('');
+  const [ocAprob, setOcAprob] = useState(null);   // OC leída al aprobar (opcional)
+  const [leerOC, setLeerOC] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [nuevoProd, setNuevoProd] = useState(null);
   const primerProd = Object.keys(M.cfg.productos)[0];
@@ -68,23 +89,18 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
   async function convertir(c) {
     if (!fechaAprob) return avisar('Indica la fecha de entrega comprometida.');
     setBusy(true);
-    let oc = null;
-    if (ocFile) {
-      const r = await subirOC(supabase, ocFile, { referencia: c.numero, numero: ocNum, perfilId: perfil.id });
-      if (r.error) { setBusy(false); return avisar(r.error); }
-      oc = r.campos;
-    }
+    const unaLinea = (c.items || []).length === 1;
+    const oc = ocAprob ? { ...ocAprob.campos, ...(unaLinea ? {} : { oc_monto: null, oc_unidades: null }) } : {};
     let n = parseInt(siguiente(ordenes.map((o) => o.codigo), '').replace(/\D/g, ''), 10) - 1;
     const filas = c.items.map((it) => ({
-      ...ordenADb({ codigo: 'OP-' + String(++n).padStart(4, '0'), cliente: c.cliente, responsableId: perfil.id, producto: it.producto, cantidad: it.cantidad, tallas: it.tallas, deco: it.deco, fechaCompromiso: fechaAprob, monto: Math.round(it.cantidad * it.precio * 100) / 100, notas: [`Cotización ${c.numero}`, it.descripcion].filter(Boolean).join(' · '), arteAprobado: false, materialListo: false, anticipo: false }),
-      creado_por: perfil.id,
-      ...(oc || { estado: 'espera', oc_numero: ocNum.trim() }),
+      ...ordenADb({ codigo: 'OP-' + String(++n).padStart(4, '0'), cliente: c.cliente, responsableId: perfil.id, producto: it.producto, cantidad: unaLinea && ocAprob && ocAprob.aplicar.cantidad ? ocAprob.aplicar.cantidad : it.cantidad, tallas: (unaLinea && ocAprob && ocAprob.aplicar.tallas) || it.tallas, deco: it.deco, fechaCompromiso: fechaAprob, monto: Math.round(it.cantidad * it.precio * 100) / 100, notas: [`Cotización ${c.numero}`, it.descripcion].filter(Boolean).join(' · '), arteAprobado: false, materialListo: false, anticipo: false }),
+      creado_por: perfil.id, cotizacion_id: c.id, estado: 'espera', ...oc,
     }));
     const { data, error } = await supabase.from('ordenes').insert(filas).select('codigo');
     if (error) { setBusy(false); return avisar('No se pudieron crear los pedidos: ' + error.message); }
     await supabase.from('cotizaciones').update({ estado: 'aprobada', fecha_entrega: fechaAprob, ordenes: (data || []).map((x) => x.codigo) }).eq('id', c.id);
-    setBusy(false); setAprobar(null); setFechaAprob(''); setOcFile(null); setOcNum('');
-    avisar(`Cotización aprobada: se crearon ${filas.length} pedido${filas.length > 1 ? 's' : ''}${oc ? ' activos con la orden de compra' : '. Quedan por activar hasta que subas la orden de compra del cliente (en Pedidos)'}.`);
+    setBusy(false); setAprobar(null); setFechaAprob(''); setOcAprob(null); setLeerOC(false);
+    avisar(`Cotización aprobada: se crearon ${filas.length} pedido${filas.length > 1 ? 's' : ''}. Envía la orden de producción desde Pedidos → "Por enviar OP".`);
     recargar.cotizaciones(); recargar.ordenes(); revisarNovedades();
   }
 
@@ -103,7 +119,8 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
         <form className="card" onSubmit={guardar} noValidate style={{ marginBottom: 16 }}>
           <h3 style={{ marginBottom: 10 }}>{draft.id ? 'Editar ' : 'Nueva cotización · '}{draft.numero}</h3>
           <div className="fgrid">
-            <label className="f">Cliente<input id="cot-cli" value={draft.cliente} onChange={(e) => set((d) => { d.cliente = e.target.value; })} /></label>
+            <label className="f">Cliente<input id="cot-cli" list="lista-clientes-cot" autoComplete="off" value={draft.cliente} onChange={(e) => { const v = e.target.value; const cl = clientes.find((x) => x.nombre === v); set((d) => { d.cliente = v; if (cl && !d.contacto) d.contacto = [cl.contacto, cl.telefono, cl.correo].filter(Boolean).join(' · '); }); }} /></label>
+            <datalist id="lista-clientes-cot">{clientes.map((c) => <option key={c.id} value={c.nombre} />)}</datalist>
             <label className="f">Contacto (persona, teléfono o correo)<input id="cot-con" value={draft.contacto} onChange={(e) => set((d) => { d.contacto = e.target.value; })} /></label>
             <label className="f">Fecha de entrega propuesta (opcional)<input id="cot-fe" type="date" value={draft.fecha_entrega || ''} onChange={(e) => set((d) => { d.fecha_entrega = e.target.value; })} /></label>
           </div>
@@ -177,17 +194,26 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                 {c.validez && <span>Válida hasta: <b>{fd(parseDay(c.validez))}</b></span>}
                 {c.ordenes && c.ordenes.length > 0 && <span>Pedidos: <b>{c.ordenes.join(', ')}</b></span>}
               </div>
+              <PasosCot c={c} M={M} hitos={hitos} perfil={perfil} supabase={supabase} avisar={avisar} recargar={recargar} />
               <div className="flags">
                 <a className="btn sm" href={`/cotizacion/${c.id}`} target="_blank" rel="noreferrer">Ver / descargar PDF</a>
                 {(() => { const d = documentos.find((x) => x.clave === 'doc:cot:' + c.id && x.estado === 'ok'); return d ? <a className="btn sm" href={d.url} target="_blank" rel="noreferrer">En Drive</a> : null; })()}
                 {aprobar === c.id ? (
-                  <span className="acts">
+                  <div className="aprobar">
                     <label className="small muted">Entrega comprometida <input type="date" value={fechaAprob} onChange={(e) => setFechaAprob(e.target.value)} style={{ width: 'auto', display: 'inline-block' }} /></label>
-                    <label className="small muted">N.º de OC <input value={ocNum} onChange={(e) => setOcNum(e.target.value)} style={{ width: 120, display: 'inline-block' }} /></label>
-                    <label className="small muted">Orden de compra (PDF o foto) <input type="file" accept={OC_TIPOS} onChange={(e) => setOcFile(e.target.files[0] || null)} style={{ width: 'auto', display: 'inline-block' }} /></label>
-                    <button className="btn sm primary" disabled={busy} onClick={() => convertir(c)}>Crear {(c.items || []).length} pedido{(c.items || []).length > 1 ? 's' : ''}</button>
-                    <button className="btn sm" onClick={() => { setAprobar(null); setOcFile(null); }}>Cancelar</button>
-                  </span>
+                    {ocAprob ? <span className="small">OC <b>{ocAprob.campos.oc_numero || 's/n'}</b>{ocAprob.campos.oc_unidades != null ? ` · ${nf.format(ocAprob.campos.oc_unidades)} unidades` : ''}{ocAprob.campos.oc_monto != null ? ` · ${usd.format(ocAprob.campos.oc_monto)}` : ''} <button className="btn sm link" onClick={() => { setOcAprob(null); setLeerOC(true); }}>Cambiar</button></span>
+                      : !leerOC && <button className="btn sm" onClick={() => setLeerOC(true)}>Adjuntar y leer la orden de compra</button>}
+                    {leerOC && !ocAprob && (
+                      <OCLector supabase={supabase} perfil={perfil} referencia={c.numero} textoListo="Usar esta orden de compra"
+                        esperado={{ cliente: c.cliente, unidades: (c.items || []).reduce((a, i) => a + (+i.cantidad || 0), 0), monto: +c.total || 0, fecha: fechaAprob || c.fecha_entrega || '', origen: 'la cotización' }}
+                        onCancel={() => setLeerOC(false)} onListo={(r) => { setOcAprob(r); setLeerOC(false); if (r.aplicar.fechaCompromiso) setFechaAprob(r.aplicar.fechaCompromiso); }} />
+                    )}
+                    <span className="acts">
+                      <button className="btn sm primary" disabled={busy || leerOC} onClick={() => convertir(c)}>Crear {(c.items || []).length} pedido{(c.items || []).length > 1 ? 's' : ''}</button>
+                      <button className="btn sm" onClick={() => { setAprobar(null); setOcAprob(null); setLeerOC(false); }}>Cancelar</button>
+                    </span>
+                    <p className="small muted" style={{ margin: 0 }}>Los pedidos quedan listos para enviar la orden de producción desde Pedidos.</p>
+                  </div>
                 ) : confirm === c.id ? (
                   <span className="acts"><span className="small muted">¿Eliminar esta cotización?</span><button className="btn sm danger" onClick={async () => { setConfirm(null); await supabase.from('cotizaciones').delete().eq('id', c.id); recargar.cotizaciones(); }}>Sí, eliminar</button><button className="btn sm" onClick={() => setConfirm(null)}>No</button></span>
                 ) : (

@@ -34,14 +34,14 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
         <div><span className="k">Pedidos activos</span><span className="v">{act.length}</span></div>
         <div><span className="k">Entrega en riesgo</span><span className={'v ' + (cnt.rojo ? 'bad' : '')}>{cnt.rojo}</span></div>
         <div><span className="k">Holgura mínima</span><span className={'v ' + (cnt.amarillo ? 'warn' : '')}>{cnt.amarillo}</span></div>
-        <div><span className="k">Por activar (sin OC)</span><span className={'v ' + (espera.length ? 'warn' : '')}>{espera.length}</span></div>
+        <div><span className="k">Por enviar la OP</span><span className={'v ' + (espera.length ? 'warn' : '')}>{espera.length}</span></div>
         <div><span className="k">Listos para despachar</span><span className={'v ' + (cnt.listo ? 'info' : '')}>{cnt.listo}</span></div>
         <div><span className="k">Estación más cargada (2 sem.)</span><span className={'v ' + (bn && bn.u > 1 ? 'bad' : bn && bn.u > 0.85 ? 'warn' : 'ok')}>{bn ? pct(bn.u) : '—'} <small>{bn ? POOL_NAME[bn.p] : ''}</small></span></div>
       </div>
 
       <FlujoPedidos M={M} perfil={perfil} ordenes={ordenes} hitos={hitos} cotizaciones={cotizaciones} veCostos={veCostos} />
 
-      {espera.length > 0 && <div className="banner warn">{espera.length === 1 ? '1 pedido espera' : espera.length + ' pedidos esperan'} la orden de compra del cliente para entrar en el plan: {espera.map((o) => o.codigo + ' · ' + o.cliente).join(', ')}. Súbela en Pedidos → Por activar.</div>}
+      {espera.length > 0 && <div className="banner warn">{espera.length === 1 ? '1 pedido espera' : espera.length + ' pedidos esperan'} que se envíe su orden de producción para entrar en el plan: {espera.map((o) => o.codigo + ' · ' + o.cliente).join(', ')}. Envíala en Pedidos → Por enviar OP.</div>}
       <h2>Alertas</h2>
       <div data-tour="alertas"><div className="chips" role="group" aria-label="Filtrar por responsable">
         <button className="chip" aria-pressed={rol === 'todas'} onClick={() => setRol('todas')}>Todas ({M.alerts.length})</button>

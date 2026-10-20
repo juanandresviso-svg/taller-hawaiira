@@ -14,12 +14,14 @@ import { revisarNovedades, RECIBE_AVISOS } from '@/lib/avisos';
 import { pasosTutorial } from '@/lib/tutorial';
 import { aprender } from '@/lib/aprendizaje';
 import Costos from './Costos';
+import Clientes from './Clientes';
 import Materiales from './Materiales';
 import { crearCostos, COSTO_ROLES, MATERIAL_ROLES } from '@/lib/costos';
 
 const TABS = {
   tablero: 'Tablero',
   pedidos: 'Pedidos',
+  clientes: 'Clientes',
   taller: 'Mi trabajo',
   costos: 'Costos',
   materiales: 'Materiales',
@@ -38,9 +40,9 @@ const DRIVE_MSJ = {
 
 function tabsPara(rol) {
   if (rol === 'operador') return ['taller'];
-  if (rol === 'direccion') return ['tablero', 'pedidos', 'taller', 'costos', 'ajustes', 'usuarios'];
-  if (rol === 'jefa') return ['tablero', 'pedidos', 'taller', 'costos', 'ajustes'];
-  if (rol === 'admin') return ['tablero', 'pedidos', 'taller', 'costos'];
+  if (rol === 'direccion') return ['tablero', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes', 'usuarios'];
+  if (rol === 'jefa') return ['tablero', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes'];
+  if (rol === 'admin') return ['tablero', 'pedidos', 'clientes', 'taller', 'costos'];
   if (rol === 'compras') return ['tablero', 'pedidos', 'taller', 'materiales'];
   return ['tablero', 'pedidos', 'taller'];
 }
@@ -61,6 +63,7 @@ export default function App({ perfil, cliente }) {
   const [cotizaciones, setCotizaciones] = useState([]);
   const [hitos, setHitos] = useState([]);
   const [documentos, setDocumentos] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const veMateriales = MATERIAL_ROLES.includes(perfil.rol), veCostos = COSTO_ROLES.includes(perfil.rol);
   const [live, setLive] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -90,6 +93,7 @@ export default function App({ perfil, cliente }) {
     historial: async () => { const { data } = await supabase.from('historial').select('*'); setHistorial(Object.fromEntries((data || []).map((h) => [h.semana, h]))); },
     // Seguimiento del flujo (si aún no se corrió la migración 06, quedan vacíos)
     hitos: async () => { const { data } = await supabase.from('hitos').select('*'); setHitos(data || []); },
+    clientes: async () => { const { data } = await supabase.from('clientes').select('*').order('nombre'); setClientes(data || []); },
     documentos: async () => { const { data } = await supabase.from('documentos').select('clave, orden_id, cotizacion_id, tipo, nombre, url, estado').neq('tipo', 'registro'); setDocumentos(data || []); },
     ...(veMateriales ? {
       materiales: async () => { const { data } = await supabase.from('materiales').select('*').order('categoria').order('nombre'); setMateriales(data || []); },
@@ -120,6 +124,7 @@ export default function App({ perfil, cliente }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => refrescar('config'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => refrescar('perfiles'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hitos' }, () => refrescar('hitos'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => refrescar('clientes'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'documentos' }, () => refrescar('documentos'));
     if (veMateriales) canal
       .on('postgres_changes', { event: '*', schema: 'public', table: 'materiales' }, () => refrescar('materiales'))
@@ -167,7 +172,7 @@ export default function App({ perfil, cliente }) {
 
   const cambiarTab = (t) => { setTab(t); try { localStorage.setItem('tab', t); } catch {} window.scrollTo(0, 0); };
   const K = useMemo(() => (veCostos ? crearCostos({ M, cc: costosCfg, materiales }) : null), [veCostos, M, costosCfg, materiales]);
-  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, hitos, documentos, veMateriales, veCostos, avisar, recargar: cargar };
+  const ctx = { supabase, perfil, M, K, A, tiempos, ordenes, perfiles, registros, config, materiales, consumos, cotizaciones, hitos, documentos, clientes, veMateriales, veCostos, avisar, recargar: cargar };
 
   return (
     <>
@@ -207,6 +212,7 @@ export default function App({ perfil, cliente }) {
           <>
             {tab === 'tablero' && <Tablero {...ctx} />}
             {tab === 'pedidos' && <Pedidos {...ctx} />}
+            {tab === 'clientes' && <Clientes {...ctx} />}
             {tab === 'taller' && <MiTrabajo {...ctx} />}
             {tab === 'costos' && <Costos {...ctx} />}
             {tab === 'materiales' && <Materiales {...ctx} />}
