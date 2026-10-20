@@ -150,9 +150,17 @@ En **Estampado** elige **Bordado** y luego **¿Quién borda?**:
 - **Interno:** lo hace la estación Bordado del taller y cuenta en la capacidad. Asigna a la persona de bordado en Usuarios.
 - **Externo (taller aliado):** no usa capacidad propia. La app suma los días que tarda el aliado (Ajustes) y su precio por pieza (Costos → Recetas). En **Mi trabajo** aparece en "Bordado externo": ahí se ve cuándo enviar las piezas y se registran las que vuelven con **Registrar recibidas**.
 
-### Salida de material
+### Materiales del pedido
 
-Cada vez que salga material del almacén para un pedido (tela, hilo, etiquetas, tinta…), pulsa **Salida de material** en ese pedido, elige el material y la cantidad. El stock baja solo y el costo real del pedido se actualiza. Lo pueden hacer compras, administración, el jefe de taller y dirección.
+**Materiales** es una lista de precios: cada material con su unidad, precio y proveedor. Casi todo se compra para cada pedido, así que no hace falta llevar stock.
+
+1. En el pedido, pulsa **Materiales**.
+2. Busca y elige el material. La app pone el precio de la lista.
+3. Escribe la cantidad: la app muestra el **total** (cantidad × precio) antes de guardar.
+4. Si lo pagaste a otro precio, cámbialo. Con **Actualizar la lista** marcado, el precio nuevo queda en la lista para la próxima vez.
+5. Pulsa **Agregar al pedido**. Abajo se ve cada material con su total y el **total de materiales** del pedido, que entra en el costo real.
+
+Solo los materiales marcados **Almacén** en la lista (hilos, etiquetas, empaque que tengas guardados) llevan stock: a esos se les descuenta la cantidad y avisan a compras cuando se acaban. Lo pueden hacer compras, administración, el jefe de taller y dirección.
 
 ## Del pedido a la orden de producción
 
@@ -219,7 +227,7 @@ Lista de máquinas de cada etapa con su cantidad. "Solo para" limita una máquin
 
 **Costos → Costo por pedido** → toca el pedido. Debajo del presupuesto y del costo real puedes:
 - Cambiar la **venta** del pedido.
-- Corregir la cantidad o el precio de una **salida de material** (el stock se ajusta solo), quitarla o **agregar una salida** nueva.
+- Corregir la cantidad o el precio de un **material del pedido**, quitarlo o **agregar** otro desde la lista de precios (con el total calculado).
 - **Agregar costos adicionales**: transporte y envío, servicios de terceros (bordado, estampado o confección externa), material comprado aparte, horas extra u otros. Cada uno con fecha, monto y nota, y se puede editar o quitar.
 Todo entra en el costo real, en el margen y en el informe de cierre.
 
@@ -231,7 +239,7 @@ Todo entra en el costo real, en el margen y en el informe de cierre.
 | --- | --- |
 | **Costo por pedido** | Compara el presupuesto (receta + mano de obra + indirectos) con el costo real a la fecha y muestra el margen de cada pedido. Pulsa una fila para ver el desglose. En rojo: margen bajo 15% o material gastado de más. |
 | **Cotizaciones** | Arma presupuestos para clientes: eliges productos, cantidades y estampado, y la app propone el precio según el margen objetivo. **Ver / descargar PDF** abre la cotización con el logo para imprimir o guardar. Cuando el cliente aprueba, **Aprobada → crear pedidos** los crea solos. |
-| **Materiales** | Catálogo con precio por unidad, proveedor y stock. Compras también lo ve en su pestaña Materiales. |
+| **Materiales** | Lista de precios: precio por unidad, proveedor y fecha del último cambio de precio (los de más de 60 días se marcan para revisar). Stock solo en los marcados **Almacén**. Compras también lo ve en su pestaña Materiales. |
 | **Recetas** | Cuánto material lleva cada producto por pieza (con % de merma) y cuánto material usa cada estampado. |
 | **Mano de obra e indirectos** | Costo por hora de cada estación, gastos indirectos del mes, margen objetivo, anticipo y datos de la empresa para las cotizaciones. |
 
@@ -277,7 +285,7 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 |---|---|
 | **Producción** | Registrar piezas terminadas a lo largo del día. Revisar los recordatorios. |
 | **Diseño** | Conseguir la aprobación del arte y marcar **Arte aprobado**. Marcar **Preprensa lista**. |
-| **Compras** | Al llegar una orden de producción, indicar si **hay material** o **falta** (paso 15), registrar la compra y la recepción, y marcar **Material listo** cuando la tela y los avíos estén en el taller. Mantener precios y stock en **Materiales** y registrar las **salidas de material** de cada pedido. |
+| **Compras** | Al llegar una orden de producción, indicar si **hay material** o **falta** (paso 15), registrar la compra y la recepción, y marcar **Material listo** cuando la tela y los avíos estén en el taller. Mantener al día la lista de precios en **Materiales** y cargar los **materiales de cada pedido** (Pedidos → Materiales). |
 | **Administración** | Marcar la proforma (paso 9) y el **Anticipo** al cobrar. Pagar al proveedor cuando falte material. Facturar y cobrar el saldo, y marcarlos en la Trazabilidad (revisa el filtro **Por cobrar**). |
 | **Jefe(a) de taller** | Revisar el plan del día de todas las estaciones, atender las alertas "sin avance", marcar **Control de calidad aprobado** en el Seguimiento, corregir registros en **Mi trabajo → Registros recientes** y mantener los tiempos en **Ajustes**. |
 | **Dirección** | Todo lo anterior, más invitar y desactivar personas en **Usuarios**, revisar recomendaciones, eliminar pedidos y conectar **Google Drive** en Ajustes. |

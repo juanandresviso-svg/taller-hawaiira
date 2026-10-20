@@ -1,65 +1,51 @@
 'use client';
 import { useState } from 'react';
 import { nf1 } from '@/lib/motor';
+import { usd } from '@/lib/costos';
 import { revisarNovedades } from '@/lib/avisos';
+import AgregarMaterial, { agregarMaterialPedido, totalMateriales } from './AgregarMaterial';
 
-// Registrar material que sale del almacén para un pedido (alimenta el costo real).
-export default function Salida({ supabase, orden, materiales, consumos, avisar, onClose, puedeBorrar }) {
-  const [mat, setMat] = useState('');
-  const [cant, setCant] = useState('');
-  const [nota, setNota] = useState('');
-  const [err, setErr] = useState('');
+// Materiales de un pedido: se eligen de la lista de precios y la app calcula el total (alimenta el costo real).
+export default function Salida({ supabase, orden, materiales, consumos, avisar, onClose, puedeBorrar, recargar }) {
   const [busy, setBusy] = useState(false);
-  const activos = materiales.filter((m) => m.activo !== false);
-  const m = materiales.find((x) => x.id === mat);
   const mias = consumos.filter((c) => c.orden_id === orden.id);
 
-  async function guardar(e) {
-    e.preventDefault();
-    if (!mat) return setErr('Elige el material.');
-    if (!(+cant > 0)) return setErr('Escribe la cantidad que sale.');
+  async function agregar(f) {
     setBusy(true);
-    const { error } = await supabase.from('consumos').insert({ orden_id: orden.id, material_id: mat, cantidad: +cant, nota: nota.trim() });
+    const r = await agregarMaterialPedido(supabase, orden.id, f, materiales);
     setBusy(false);
-    if (error) return setErr('No se pudo guardar: ' + error.message);
-    avisar(`Salida registrada: ${cant} ${m ? m.unidad : ''} de ${m ? m.nombre : 'material'} para ${orden.codigo}.`);
-    setCant(''); setNota(''); setErr('');
+    if (r.error) { avisar('No se pudo guardar: ' + r.error.message); return false; }
+    avisar(`${orden.codigo}: ${nf1.format(+f.cantidad)} ${r.m ? r.m.unidad : ''} de ${r.m ? r.m.nombre : 'material'} · ${usd.format(r.total)}.`);
+    recargar && recargar.consumos && recargar.consumos();
+    recargar && recargar.materiales && recargar.materiales();
     revisarNovedades();
+    return true;
   }
   async function borrar(id) {
     const { error } = await supabase.from('consumos').delete().eq('id', id);
-    if (error) avisar('No se pudo borrar: ' + error.message);
+    if (error) avisar('No se pudo quitar: ' + error.message); else recargar && recargar.consumos && recargar.consumos();
   }
 
   return (
-    <form className="subcard" onSubmit={guardar} noValidate>
-      <b className="small">Salida de material · {orden.codigo}</b>
-      <div className="fgrid" style={{ marginTop: 8 }}>
-        <label className="f">Material
-          <select id={'sal-mat-' + orden.id} value={mat} onChange={(e) => setMat(e.target.value)}>
-            <option value="">Elegir…</option>
-            {activos.map((x) => <option key={x.id} value={x.id}>{x.nombre} ({x.unidad}) · stock {nf1.format(x.stock)}</option>)}
-          </select>
-        </label>
-        <label className="f">Cantidad{m ? ` (${m.unidad})` : ''}<input id={'sal-cant-' + orden.id} type="number" step="0.01" min="0" value={cant} onChange={(e) => setCant(e.target.value)} /></label>
-        <label className="f">Nota (opcional)<input id={'sal-nota-' + orden.id} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej. lote 23, tela negra" /></label>
-      </div>
-      {err && <div className="err" role="alert">{err}</div>}
-      <div className="formacts" style={{ marginTop: 8 }}>
-        <button className="btn sm primary" type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Registrar salida'}</button>
-        <button className="btn sm" type="button" onClick={onClose}>Cerrar</button>
-      </div>
+    <div className="subcard">
+      <b className="small">Materiales del pedido · {orden.codigo}</b>
+      <p className="small muted" style={{ margin: '4px 0 8px' }}>Elige el material de la lista de precios, pon la cantidad y la app calcula el total. Si lo pagaste a otro precio, cámbialo antes de agregarlo.</p>
+      <AgregarMaterial materiales={materiales} idBase={'sal-' + orden.id} busy={busy} onAgregar={agregar} />
       {mias.length > 0 && (
-        <table style={{ marginTop: 10 }}>
-          <thead><tr><th>Material</th><th className="r">Cantidad</th><th>Nota</th><th></th></tr></thead>
-          <tbody>
-            {mias.map((c) => { const mm = materiales.find((x) => x.id === c.material_id); return (
-              <tr key={c.id}><td>{mm ? mm.nombre : '—'}</td><td className="r">{nf1.format(c.cantidad)} {mm ? mm.unidad : ''}</td><td className="small muted">{c.nota}</td>
-                <td className="r">{puedeBorrar && <button type="button" className="btn sm" onClick={() => borrar(c.id)}>Quitar</button>}</td></tr>
-            ); })}
-          </tbody>
-        </table>
+        <div className="scroll">
+          <table style={{ marginTop: 10 }}>
+            <thead><tr><th>Material</th><th className="r">Cantidad</th><th className="r">Precio</th><th className="r">Total</th><th></th></tr></thead>
+            <tbody>
+              {mias.map((c) => { const mm = materiales.find((x) => x.id === c.material_id); return (
+                <tr key={c.id}><td>{mm ? mm.nombre : '—'}{c.nota ? <div className="small muted">{c.nota}</div> : null}</td><td className="r nowrap">{nf1.format(c.cantidad)} {mm ? mm.unidad : ''}</td><td className="r">{usd.format(+c.costo_unit || 0)}</td><td className="r">{usd.format(c.cantidad * (+c.costo_unit || 0))}</td>
+                  <td className="r">{puedeBorrar && <button type="button" className="btn sm" onClick={() => borrar(c.id)}>Quitar</button>}</td></tr>
+              ); })}
+            </tbody>
+            <tfoot><tr><th colSpan={3}>Total de materiales</th><th className="r">{usd.format(totalMateriales(mias))}</th><th /></tr></tfoot>
+          </table>
+        </div>
       )}
-    </form>
+      <div className="formacts" style={{ marginTop: 8 }}><button className="btn sm" type="button" onClick={onClose}>Cerrar</button></div>
+    </div>
   );
 }

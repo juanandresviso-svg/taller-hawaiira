@@ -35,7 +35,7 @@ export default function CostosPedidos({ M, K, ordenes, consumos, materiales, cos
       </div>
       {incompletos > 0 && <div className="banner warn">{incompletos} pedido{incompletos > 1 ? 's tienen' : ' tiene'} el costo incompleto (falta receta, precios de materiales o mano de obra). Complétalo en Recetas, Materiales y Parámetros.</div>}
 
-      <p className="small muted" style={{ margin: '0 0 8px' }}>Toca un pedido para ver el detalle y <b>editar o agregar costos</b>: venta, salidas de material y costos adicionales (transporte, terceros, compras puntuales, horas extra).</p>
+      <p className="small muted" style={{ margin: '0 0 8px' }}>Toca un pedido para ver el detalle y <b>editar o agregar costos</b>: venta, materiales del pedido (de la lista de precios, con su total) y costos adicionales (transporte, terceros, compras puntuales, horas extra).</p>
       <div className="chips">
         {[['activos', 'Activos'], ['entregados', 'Entregados'], ['todos', 'Todos']].map(([k, v]) => <button key={k} className="chip" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{v}</button>)}
       </div>
@@ -68,7 +68,7 @@ function FilaPedido({ o, p, r, margen, desvMat, M, K, abierto, onClick, material
         <td className={'r ' + (margen == null ? '' : margen < 0.15 ? 'neg' : 'pos')}>{margen == null ? '—' : pct(margen)}</td>
         <td className="r">{usd0.format(r.total)}</td>
         <td className="r">{pct(Math.min(1, r.avance))}</td>
-        <td className={'r ' + (r.salidas.length ? (desvMat > p.materiales * 0.05 ? 'neg' : 'pos') : 'muted')}>{r.salidas.length ? (desvMat > 0 ? '+' : '') + usd0.format(desvMat) : 'sin salidas'}</td>
+        <td className={'r ' + (r.salidas.length ? (desvMat > p.materiales * 0.05 ? 'neg' : 'pos') : 'muted')}>{r.salidas.length ? (desvMat > 0 ? '+' : '') + usd0.format(desvMat) : 'sin materiales'}</td>
       </tr>
       {abierto && (
         <tr><td colSpan={9} style={{ background: 'var(--surface-2)' }}>
@@ -92,7 +92,7 @@ function FilaPedido({ o, p, r, margen, desvMat, M, K, abierto, onClick, material
               <table style={{ marginTop: 6 }}>
                 <tbody>
                   {r.salidas.map((c) => { const m = materiales.find((x) => x.id === c.material_id); return <tr key={c.id}><td>{m ? m.nombre : '—'} <span className="muted small">{fd(new Date(c.ts))}</span></td><td className="r small">{nf1.format(c.cantidad)} {m ? m.unidad : ''}</td><td className="r">{usd.format(c.cantidad * c.costo_unit)}</td></tr>; })}
-                  {!r.salidas.length && <tr><td colSpan={3} className="muted small">Todavía no hay salidas de material registradas para este pedido (Pedidos → Salida de material).</td></tr>}
+                  {!r.salidas.length && <tr><td colSpan={3} className="muted small">Todavía no hay materiales cargados a este pedido (Pedidos → Materiales, o agrégalos abajo).</td></tr>}
                   <tr><td>Materiales</td><td></td><td className="r">{usd.format(r.materiales)}</td></tr>
                   {r.externo > 0 && <tr><td>Bordado externo recibido</td><td></td><td className="r">{usd.format(r.externo)}</td></tr>}
                   <tr><td>Mano de obra de las piezas registradas</td><td></td><td className="r">{usd.format(r.manoObra)}</td></tr>

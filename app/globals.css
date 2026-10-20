@@ -392,3 +392,15 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--surface-2); 
 .ed-fila select { flex: 2 1 220px; min-width: 0; }
 .ed-fila input { flex: 1 1 120px; min-width: 0; }
 .ed-form { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-top: 6px; }
+
+/* Agregar material a un pedido desde la lista de precios */
+.agregar-mat { margin-top: 4px; }
+.agregar-mat .am-total { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.agregar-mat .am-total > div { display: flex; flex-direction: column; margin-right: auto; min-width: 140px; }
+.agregar-mat .am-total b { font-size: 20px; font-family: var(--mono); }
+.agregar-mat .am-total label { display: flex; align-items: center; gap: 6px; }
+.toolbar input.buscar { flex: 1 1 200px; }
+.agregar-mat .fgrid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+table tfoot th { border-top: 2px solid var(--line); text-align: left; }
+table tfoot th.r { text-align: right; }
+.lineas td input[id^="ms-"] { width: 80px; }

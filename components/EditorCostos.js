@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { usd, CATEGORIAS_COSTO } from '@/lib/costos';
 import { nf1, fd, parseDay, isoDay, hoyCaracas } from '@/lib/motor';
+import AgregarMaterial, { agregarMaterialPedido, totalMateriales } from './AgregarMaterial';
 
 // Editar y agregar costos de un pedido: venta, salidas de material y costos adicionales
 export default function EditorCostos({ supabase, o, materiales = [], salidas = [], extras = [], avisar, recargar }) {
@@ -9,7 +10,6 @@ export default function EditorCostos({ supabase, o, materiales = [], salidas = [
   const [venta, setVenta] = useState(o.monto || '');
   const [edS, setEdS] = useState(null);   // salida en edición { id, cantidad, costo_unit }
   const [edX, setEdX] = useState(null);   // costo adicional en edición (o nuevo: id null)
-  const [nuevaS, setNuevaS] = useState({ material_id: '', cantidad: '', nota: '' });
   const hoy = isoDay(hoyCaracas());
 
   async function correr(fn, ok, tablas) {
@@ -27,13 +27,17 @@ export default function EditorCostos({ supabase, o, materiales = [], salidas = [
 
   async function guardarSalida() {
     if (!(+edS.cantidad > 0)) return avisar('La cantidad debe ser mayor que cero.');
-    if (await correr(() => supabase.from('consumos').update({ cantidad: +edS.cantidad, costo_unit: Math.max(0, +edS.costo_unit || 0) }).eq('id', edS.id), 'Salida de material corregida. El stock se ajustó.', ['consumos', 'materiales'])) setEdS(null);
+    if (await correr(() => supabase.from('consumos').update({ cantidad: +edS.cantidad, costo_unit: Math.max(0, +edS.costo_unit || 0) }).eq('id', edS.id), 'Material del pedido corregido.', ['consumos', 'materiales'])) setEdS(null);
   }
-  async function agregarSalida(e) {
-    e.preventDefault();
-    if (!nuevaS.material_id) return avisar('Elige el material.');
-    if (!(+nuevaS.cantidad > 0)) return avisar('Escribe la cantidad.');
-    if (await correr(() => supabase.from('consumos').insert({ orden_id: o.id, material_id: nuevaS.material_id, cantidad: +nuevaS.cantidad, nota: nuevaS.nota.trim() }), 'Salida de material registrada.', ['consumos', 'materiales'])) setNuevaS({ material_id: '', cantidad: '', nota: '' });
+  async function agregarSalida(f) {
+    if (busy) return false;
+    setBusy(true);
+    const r = await agregarMaterialPedido(supabase, o.id, f, materiales);
+    setBusy(false);
+    if (r.error) { avisar('No se pudo guardar: ' + r.error.message); return false; }
+    avisar(`${o.codigo}: ${r.m ? r.m.nombre : 'material'} agregado · ${usd.format(r.total)}.`);
+    ['consumos', 'materiales'].forEach((t) => recargar[t] && recargar[t]());
+    return true;
   }
   async function guardarExtra(e) {
     e.preventDefault();
@@ -52,9 +56,9 @@ export default function EditorCostos({ supabase, o, materiales = [], salidas = [
         <button className="btn sm" disabled={busy || +venta === +o.monto} onClick={guardarVenta}>Guardar venta</button>
       </div>
 
-      <h4>Salidas de material</h4>
+      <h4>Materiales del pedido</h4>
       <table>
-        <thead><tr><th>Material</th><th className="r">Cantidad</th><th className="r">Precio unit.</th><th className="r">Costo</th><th /></tr></thead>
+        <thead><tr><th>Material</th><th className="r">Cantidad</th><th className="r">Precio unit.</th><th className="r">Total</th><th /></tr></thead>
         <tbody>
           {salidas.map((c) => {
             const m = mat(c.material_id), ed = edS && edS.id === c.id;
@@ -66,23 +70,16 @@ export default function EditorCostos({ supabase, o, materiales = [], salidas = [
                 <td className="r">{usd.format((ed ? +edS.cantidad * +edS.costo_unit : c.cantidad * c.costo_unit) || 0)}</td>
                 <td className="r nowrap">
                   {ed ? <><button className="btn sm primary" disabled={busy} onClick={guardarSalida}>Guardar</button> <button className="btn sm" onClick={() => setEdS(null)}>Cancelar</button></>
-                    : <><button className="btn sm" onClick={() => setEdS({ id: c.id, cantidad: c.cantidad, costo_unit: c.costo_unit })}>Editar</button> <button className="btn sm link" disabled={busy} onClick={() => correr(() => supabase.from('consumos').delete().eq('id', c.id), 'Salida eliminada. El material volvió al stock.', ['consumos', 'materiales'])}>Quitar</button></>}
+                    : <><button className="btn sm" onClick={() => setEdS({ id: c.id, cantidad: c.cantidad, costo_unit: c.costo_unit })}>Editar</button> <button className="btn sm link" disabled={busy} onClick={() => correr(() => supabase.from('consumos').delete().eq('id', c.id), 'Material quitado del pedido.', ['consumos', 'materiales'])}>Quitar</button></>}
                 </td>
               </tr>
             );
           })}
-          {!salidas.length && <tr><td colSpan={5} className="muted small">Sin salidas de material.</td></tr>}
+          {!salidas.length && <tr><td colSpan={5} className="muted small">Todavía no hay materiales cargados a este pedido.</td></tr>}
         </tbody>
+        {salidas.length > 0 && <tfoot><tr><th colSpan={3}>Total de materiales</th><th className="r">{usd.format(totalMateriales(salidas))}</th><th /></tr></tfoot>}
       </table>
-      <form className="ed-fila" onSubmit={agregarSalida}>
-        <select aria-label="Material" value={nuevaS.material_id} onChange={(e) => setNuevaS({ ...nuevaS, material_id: e.target.value })}>
-          <option value="">Material…</option>
-          {materiales.filter((m) => m.activo !== false).map((m) => <option key={m.id} value={m.id}>{m.nombre} ({m.unidad}) · {usd.format(+m.costo || 0)}</option>)}
-        </select>
-        <input aria-label="Cantidad" type="number" step="0.01" min="0" placeholder="Cantidad" value={nuevaS.cantidad} onChange={(e) => setNuevaS({ ...nuevaS, cantidad: e.target.value })} />
-        <input aria-label="Nota" placeholder="Nota (opcional)" value={nuevaS.nota} onChange={(e) => setNuevaS({ ...nuevaS, nota: e.target.value })} />
-        <button className="btn sm" type="submit" disabled={busy}>Agregar salida</button>
-      </form>
+      <AgregarMaterial materiales={materiales} idBase={'ed-' + o.id} busy={busy} onAgregar={agregarSalida} />
 
       <h4>Costos adicionales</h4>
       <table>

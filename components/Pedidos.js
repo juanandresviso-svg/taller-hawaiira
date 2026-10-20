@@ -267,7 +267,7 @@ export default function Pedidos({ supabase, perfil, M, K, ordenes, perfiles, mat
                           {!ent && !esp && <button className="btn sm" onClick={() => setConfirm({ id: o.id, a: 'entregar' })}>Marcar entregado</button>}
                           {ent && <button className="btn sm" onClick={() => run(() => supabase.from('ordenes').update({ estado: 'activo', entregado: null }).eq('id', o.id), 'Pedido reactivado.')}>Reactivar</button>}
                           {!esp && <a className="btn sm" href={'/informe/' + o.id} target="_blank" rel="noreferrer">Informe</a>}
-                          {veMateriales && !ent && <button className="btn sm" onClick={() => setSalida(salida === o.id ? null : o.id)}>Salida de material</button>}
+                          {veMateriales && !ent && <button className="btn sm" onClick={() => setSalida(salida === o.id ? null : o.id)}>Materiales</button>}
                           {perfil.rol === 'direccion' && <button className="btn sm danger" onClick={() => setConfirm({ id: o.id, a: 'borrar' })}>Eliminar</button>}
                         </>
                       )}
@@ -275,7 +275,7 @@ export default function Pedidos({ supabase, perfil, M, K, ordenes, perfiles, mat
                   )}
                 </div>
                 <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} ctx={ctxEquipo} onEnviarOP={puede && (o.cotizacionId || perfil.rol === 'direccion' || o.estado !== 'espera') ? (reenviar) => setEnviando({ id: o.id, reenviar }) : null} />
-                {salida === o.id && <Salida supabase={supabase} orden={o} materiales={materiales} consumos={consumos} avisar={avisar} onClose={() => setSalida(null)} puedeBorrar={['direccion', 'jefa', 'admin'].includes(perfil.rol)} />}
+                {salida === o.id && <Salida supabase={supabase} orden={o} materiales={materiales} consumos={consumos} avisar={avisar} onClose={() => setSalida(null)} recargar={recargar} puedeBorrar={['direccion', 'jefa', 'admin'].includes(perfil.rol)} />}
               </article>
             );
           })}
