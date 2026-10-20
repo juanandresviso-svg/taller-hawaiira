@@ -5,6 +5,7 @@ import { DECO_NAME, fd, parseDay, isoDay, nf, pct, ordenADb } from '@/lib/motor'
 import { decoTexto } from './ui';
 import NuevoProducto from './NuevoProducto';
 import OCLector from './OCLector';
+import { codigoProducto, numeroSiguiente, OBSERVACIONES_BASE, PAGO_BASE } from '@/lib/formatoCotizacion';
 import { evaluarPasos, claveHitoCot, puedeMarcar, TOTAL_PASOS } from '@/lib/proceso';
 import { revisarNovedades } from '@/lib/avisos';
 
@@ -16,7 +17,7 @@ function siguiente(lista, prefijo) {
   lista.forEach((c) => { const n = parseInt(String(c || '').replace(/\D/g, ''), 10); if (n > m) m = n; });
   return prefijo + String(m + 1).padStart(4, '0');
 }
-const itemVacio = (prod) => ({ producto: prod, descripcion: '', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, precio: '', manual: false });
+const itemVacio = (prod, productos) => ({ producto: prod, codigo: codigoProducto(prod, productos), descripcion: '', cantidad: '', tallas: '', deco: { tipo: 'serigrafia', colores: 1, ubicaciones: 1 }, precio: '', manual: false });
 
 // Pasos 1 a 8 del flujograma (cotización)
 function PasosCot({ c, M, hitos, perfil, supabase, avisar, recargar }) {
@@ -61,24 +62,36 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
 
   function nueva() {
     setErr('');
-    setDraft({ numero: siguiente(cotizaciones.map((c) => c.numero), 'COT-'), cliente: '', contacto: '', fecha_entrega: '', notas: `Precios en US$, no incluyen IVA. Anticipo de ${K.C.anticipo}% para iniciar la producción y el saldo contra entrega.`, items: [itemVacio(primerProd)] });
+    const E = K.C.empresa || {};
+    setDraft({ numero: numeroSiguiente(cotizaciones.map((c) => c.numero), E.proximaCotizacion), cliente: '', contacto: '', rif: '', direccion: '', telefono: '', fecha_entrega: '', notas: E.observaciones || OBSERVACIONES_BASE, metodo_pago: E.metodoPago || PAGO_BASE, items: [itemVacio(primerProd, M.cfg.productos)] });
     window.scrollTo(0, 0);
   }
 
-  async function guardar(e) {
-    e.preventDefault();
+  async function guardar(e, generar = false) {
+    if (e) e.preventDefault();
     if (!draft.cliente.trim()) return setErr('Escribe el cliente.');
-    const items = draft.items.map((it) => { const c = calc(it); return { producto: it.producto, nombre: M.cfg.productos[it.producto]?.nombre || it.producto, descripcion: it.descripcion.trim(), cantidad: c.q, tallas: it.tallas.trim(), deco: it.deco, precio: c.precio, costo: Math.round(c.p.unitario * 100) / 100, manual: !!it.manual }; });
+    if (!String(draft.numero || '').trim()) return setErr('Escribe el número de la cotización.');
+    if (!draft.id && cotizaciones.some((c) => String(c.numero) === String(draft.numero).trim())) return setErr('Ya existe una cotización con ese número.');
+    const items = draft.items.map((it) => { const c = calc(it); return { producto: it.producto, codigo: String(it.codigo || '').trim() || codigoProducto(it.producto, M.cfg.productos), nombre: M.cfg.productos[it.producto]?.nombre || it.producto, descripcion: it.descripcion.trim(), cantidad: c.q, tallas: it.tallas.trim(), deco: it.deco, precio: c.precio, costo: Math.round(c.p.unitario * 100) / 100, manual: !!it.manual }; });
     if (!items.length || items.some((i) => !(i.cantidad > 0))) return setErr('Cada línea necesita una cantidad mayor que cero.');
     if (items.some((i) => !(i.precio > 0))) return setErr('Cada línea necesita un precio. Si el costo sale en 0, completa recetas y precios o escribe el precio a mano.');
     const v = new Date(M.t0); v.setDate(v.getDate() + (+K.C.validezDias || 15));
-    const body = { numero: draft.numero, cliente: draft.cliente.trim(), contacto: draft.contacto.trim(), items, notas: draft.notas, fecha_entrega: draft.fecha_entrega || null, validez: isoDay(v), total: items.reduce((a, i) => a + i.cantidad * i.precio, 0) };
+    const body = { numero: String(draft.numero).trim(), cliente: draft.cliente.trim(), contacto: draft.contacto.trim(), items, notas: draft.notas, metodo_pago: String(draft.metodo_pago || '').trim() || PAGO_BASE, fecha_entrega: draft.fecha_entrega || null, validez: isoDay(v), total: items.reduce((a, i) => a + i.cantidad * i.precio, 0) };
+    const ventana = generar ? window.open('', '_blank') : null; // se abre ya para que el navegador no la bloquee
     setBusy(true);
-    const { error } = draft.id ? await supabase.from('cotizaciones').update(body).eq('id', draft.id) : await supabase.from('cotizaciones').insert(body);
+    const { data: fila, error } = draft.id
+      ? await supabase.from('cotizaciones').update(body).eq('id', draft.id).select('id, cliente_id').single()
+      : await supabase.from('cotizaciones').insert(body).select('id, cliente_id').single();
+    // Los datos del cliente (RIF, dirección, teléfono) quedan en su ficha para las próximas cotizaciones
+    if (!error && fila && fila.cliente_id) {
+      const datos = Object.fromEntries(['rif', 'direccion', 'telefono'].map((k) => [k, String(draft[k] || '').trim()]).filter(([, v]) => v));
+      if (Object.keys(datos).length) await supabase.from('clientes').update(datos).eq('id', fila.cliente_id);
+    }
     setBusy(false);
-    if (error) return setErr('No se pudo guardar: ' + error.message);
+    if (error) { if (ventana) ventana.close(); return setErr('No se pudo guardar: ' + (/duplicate/.test(error.message) ? 'ya existe una cotización con ese número.' : error.message)); }
     avisar(draft.id ? 'Cotización actualizada.' : `Cotización ${body.numero} creada.`);
-    setDraft(null); recargar.cotizaciones();
+    if (ventana) ventana.location.href = '/cotizacion/' + fila.id;
+    setDraft(null); recargar.cotizaciones(); recargar.clientes && recargar.clientes();
   }
 
   async function estado(c, est) {
@@ -117,11 +130,15 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
 
       {draft && (
         <form className="card" onSubmit={guardar} noValidate style={{ marginBottom: 16 }}>
-          <h3 style={{ marginBottom: 10 }}>{draft.id ? 'Editar ' : 'Nueva cotización · '}{draft.numero}</h3>
+          <h3 style={{ marginBottom: 10 }}>{draft.id ? 'Editar cotización ' + draft.numero : 'Nueva cotización'}</h3>
           <div className="fgrid">
-            <label className="f">Cliente<input id="cot-cli" list="lista-clientes-cot" autoComplete="off" value={draft.cliente} onChange={(e) => { const v = e.target.value; const cl = clientes.find((x) => x.nombre === v); set((d) => { d.cliente = v; if (cl && !d.contacto) d.contacto = [cl.contacto, cl.telefono, cl.correo].filter(Boolean).join(' · '); }); }} /></label>
+            <label className="f"># de cotización<input id="cot-num" value={draft.numero} disabled={!!draft.id} onChange={(e) => set((d) => { d.numero = e.target.value; })} /></label>
+            <label className="f">Cliente<input id="cot-cli" list="lista-clientes-cot" autoComplete="off" value={draft.cliente} onChange={(e) => { const v = e.target.value; const cl = clientes.find((x) => x.nombre === v); set((d) => { d.cliente = v; if (cl) { d.contacto = d.contacto || cl.contacto || ''; d.rif = cl.rif || ''; d.direccion = cl.direccion || ''; d.telefono = cl.telefono || ''; } }); }} /></label>
             <datalist id="lista-clientes-cot">{clientes.map((c) => <option key={c.id} value={c.nombre} />)}</datalist>
-            <label className="f">Contacto (persona, teléfono o correo)<input id="cot-con" value={draft.contacto} onChange={(e) => set((d) => { d.contacto = e.target.value; })} /></label>
+            <label className="f">Contacto (persona)<input id="cot-con" value={draft.contacto} onChange={(e) => set((d) => { d.contacto = e.target.value; })} /></label>
+            <label className="f">RIF<input id="cot-rif" value={draft.rif || ''} onChange={(e) => set((d) => { d.rif = e.target.value; })} /></label>
+            <label className="f">Dirección<input id="cot-dir" value={draft.direccion || ''} onChange={(e) => set((d) => { d.direccion = e.target.value; })} /></label>
+            <label className="f">Teléfono<input id="cot-tel" value={draft.telefono || ''} onChange={(e) => set((d) => { d.telefono = e.target.value; })} /></label>
             <label className="f">Fecha de entrega propuesta (opcional)<input id="cot-fe" type="date" value={draft.fecha_entrega || ''} onChange={(e) => set((d) => { d.fecha_entrega = e.target.value; })} /></label>
           </div>
           <h2 style={{ marginTop: 18 }}>Productos</h2>
@@ -132,11 +149,12 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                 <div key={i} className="subcard">
                   <div className="fgrid">
                     <label className="f">Producto
-                      <select value={it.producto} onChange={(e) => { if (e.target.value === '__nuevo') setNuevoProd(i); else set((d) => { d.items[i].producto = e.target.value; }); }}>
+                      <select value={it.producto} onChange={(e) => { if (e.target.value === '__nuevo') setNuevoProd(i); else set((d) => { d.items[i].producto = e.target.value; d.items[i].codigo = codigoProducto(e.target.value, M.cfg.productos); }); }}>
                         {Object.entries(M.cfg.productos).map(([k, p]) => <option key={k} value={k}>{p.nombre}</option>)}
                         <option value="__nuevo">+ Agregar producto nuevo…</option>
                       </select>
                     </label>
+                    <label className="f">Cód.<input value={it.codigo || ''} onChange={(e) => set((d) => { d.items[i].codigo = e.target.value.toUpperCase(); })} /></label>
                     <label className="f">Cantidad<input type="number" min="1" value={it.cantidad} onChange={(e) => set((d) => { d.items[i].cantidad = e.target.value; })} /></label>
                     <label className="f">Estampado
                       <select value={it.deco.tipo} onChange={(e) => set((d) => { d.items[i].deco.tipo = e.target.value; })}>
@@ -152,7 +170,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                     )}
                     {it.deco.tipo === 'serigrafia' && <label className="f">Colores<input type="number" min="1" value={it.deco.colores} onChange={(e) => set((d) => { d.items[i].deco.colores = e.target.value; })} /></label>}
                     {it.deco.tipo !== 'ninguna' && <label className="f">Ubicaciones<input type="number" min="1" value={it.deco.ubicaciones} onChange={(e) => set((d) => { d.items[i].deco.ubicaciones = e.target.value; })} /></label>}
-                    <label className="f">Descripción para el cliente<input value={it.descripcion} placeholder="Ej. Franela algodón negra, logo frente" onChange={(e) => set((d) => { d.items[i].descripcion = e.target.value; })} /></label>
+                    <label className="f">Descripción en la cotización<input value={it.descripcion} placeholder="Ej. Franela manga corta personalizada" onChange={(e) => set((d) => { d.items[i].descripcion = e.target.value; })} /></label>
                     <label className="f">Tallas<input value={it.tallas} placeholder="S 50 · M 120 · L 100" onChange={(e) => set((d) => { d.items[i].tallas = e.target.value; })} /></label>
                     <label className="f">Precio unitario (US$)
                       <input type="number" step="0.05" min="0" value={it.manual ? it.precio : c.sug || ''} onChange={(e) => set((d) => { d.items[i].precio = e.target.value; d.items[i].manual = true; })} />
@@ -171,12 +189,16 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
               );
             })}
           </div>
-          <div className="formacts"><button type="button" className="btn sm" onClick={() => set((d) => { d.items.push(itemVacio(primerProd)); })}>Agregar otro producto</button></div>
-          <label className="f" style={{ marginTop: 12 }}>Condiciones y notas (aparecen en la cotización)<textarea id="cot-notas" rows={3} value={draft.notas} onChange={(e) => set((d) => { d.notas = e.target.value; })} /></label>
+          <div className="formacts"><button type="button" className="btn sm" onClick={() => set((d) => { d.items.push(itemVacio(primerProd, M.cfg.productos)); })}>Agregar otro producto</button></div>
+          <div className="fgrid" style={{ marginTop: 12 }}>
+            <label className="f">Observaciones<textarea id="cot-notas" rows={2} value={draft.notas} onChange={(e) => set((d) => { d.notas = e.target.value; })} /></label>
+            <label className="f">Métodos de pago<input id="cot-pago" value={draft.metodo_pago || ''} onChange={(e) => set((d) => { d.metodo_pago = e.target.value; })} /></label>
+          </div>
           <p style={{ margin: '12px 0 0' }}>Total: <b>{usd.format(draft.items.reduce((a, it) => a + calc(it).total, 0))}</b></p>
           {err && <div className="err" role="alert">{err}</div>}
           <div className="formacts">
-            <button className="btn primary" type="submit" disabled={busy}>{draft.id ? 'Guardar cambios' : 'Guardar cotización'}</button>
+            <button className="btn primary" type="button" disabled={busy} onClick={() => guardar(null, true)}>Guardar y generar cotización</button>
+            <button className="btn" type="submit" disabled={busy}>{draft.id ? 'Guardar cambios' : 'Solo guardar'}</button>
             <button className="btn" type="button" onClick={() => setDraft(null)}>Cancelar</button>
           </div>
         </form>
@@ -196,7 +218,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
               </div>
               <PasosCot c={c} M={M} hitos={hitos} perfil={perfil} supabase={supabase} avisar={avisar} recargar={recargar} />
               <div className="flags">
-                <a className="btn sm" href={`/cotizacion/${c.id}`} target="_blank" rel="noreferrer">Ver / descargar PDF</a>
+                <a className="btn sm primary" href={`/cotizacion/${c.id}`} target="_blank" rel="noreferrer">Generar cotización</a>
                 {(() => { const d = documentos.find((x) => x.clave === 'doc:cot:' + c.id && x.estado === 'ok'); return d ? <a className="btn sm" href={d.url} target="_blank" rel="noreferrer">En Drive</a> : null; })()}
                 {aprobar === c.id ? (
                   <div className="aprobar">
@@ -218,7 +240,7 @@ export default function Cotizaciones({ supabase, perfil, M, K, ordenes, cotizaci
                   <span className="acts"><span className="small muted">¿Eliminar esta cotización?</span><button className="btn sm danger" onClick={async () => { setConfirm(null); await supabase.from('cotizaciones').delete().eq('id', c.id); recargar.cotizaciones(); }}>Sí, eliminar</button><button className="btn sm" onClick={() => setConfirm(null)}>No</button></span>
                 ) : (
                   <span className="acts">
-                    {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm" onClick={() => { setErr(''); setDraft({ ...structuredClone(c), fecha_entrega: c.fecha_entrega || '', items: c.items.map((i) => ({ ...i, precio: i.precio, manual: true })) }); window.scrollTo(0, 0); }}>Editar</button>}
+                    {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm" onClick={() => { setErr(''); const cl = clientes.find((x) => x.id === c.cliente_id) || {}; setDraft({ ...structuredClone(c), rif: cl.rif || '', direccion: cl.direccion || '', telefono: cl.telefono || '', metodo_pago: c.metodo_pago || PAGO_BASE, fecha_entrega: c.fecha_entrega || '', items: c.items.map((i) => ({ ...i, codigo: i.codigo || codigoProducto(i.producto, M.cfg.productos), precio: i.precio, manual: true })) }); window.scrollTo(0, 0); }}>Editar</button>}
                     {c.estado === 'borrador' && <button className="btn sm" onClick={() => estado(c, 'enviada')}>Marcar enviada</button>}
                     {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm primary" onClick={() => { setAprobar(c.id); setFechaAprob(c.fecha_entrega || ''); }}>Aprobada → crear pedidos</button>}
                     {['borrador', 'enviada'].includes(c.estado) && <button className="btn sm" onClick={() => estado(c, 'rechazada')}>Rechazada</button>}

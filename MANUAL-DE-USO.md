@@ -214,6 +214,10 @@ Lista de máquinas de cada etapa con su cantidad. "Solo para" limita una máquin
 
 ## Costos (dirección, jefe de taller y administración)
 
+### Generar una cotización
+
+**Costos → Cotizaciones → Nueva cotización.** Llena número (la app propone el siguiente: 280, 281…), cliente (si ya existe, trae contacto, RIF, dirección y teléfono), productos con su código (FR01, CH01…), descripción, cantidad y precio, observaciones y métodos de pago. Pulsa **Guardar y generar cotización**: se abre la cotización con el formato de Hawaiira Studio y el botón **Descargar PDF**, que la guarda como «P280 CLIENTE - HAWAIIRA STUDIO». En la lista, cada cotización tiene el botón **Generar cotización** para volver a abrirla. Los datos de la empresa, el próximo número, las observaciones y el método de pago por defecto se cambian en **Costos → Mano de obra e indirectos → Datos de la empresa**.
+
 | Sección | Para qué sirve |
 | --- | --- |
 | **Costo por pedido** | Compara el presupuesto (receta + mano de obra + indirectos) con el costo real a la fecha y muestra el margen de cada pedido. Pulsa una fila para ver el desglose. En rojo: margen bajo 15% o material gastado de más. |

@@ -124,7 +124,7 @@ export default function Recetas({ supabase, M, K, materiales, avisar, recargar, 
       <h2>Datos de la empresa para las cotizaciones</h2>
       <div className="panel">
         <div className="fgrid">
-          {[['nombre', 'Nombre'], ['rif', 'RIF'], ['direccion', 'Dirección'], ['telefono', 'Teléfono / WhatsApp'], ['correo', 'Correo']].map(([k, l]) => (
+          {[['nombre', 'Razón social'], ['rif', 'RIF'], ['direccion', 'Dirección'], ['ciudad', 'Ciudad y país'], ['telefono', 'Teléfono / WhatsApp'], ['correo', 'Correo'], ['proximaCotizacion', 'Próximo n.º de cotización'], ['metodoPago', 'Método de pago por defecto'], ['observaciones', 'Observaciones por defecto'], ['leyendaIva', 'Leyenda de impuestos']].map(([k, l]) => (
             <label key={k} className="f">{l}<input id={'emp-' + k} value={c.empresa[k] || ''} onChange={(e) => set((n) => { n.empresa[k] = e.target.value; })} /></label>
           ))}
         </div>
