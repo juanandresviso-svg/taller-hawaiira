@@ -76,6 +76,11 @@ export default function App({ perfil, cliente }) {
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState(null);
   const [tour, setTour] = useState(false);
+  // Durante el tutorial todas las secciones se abren para poder señalarlas
+  useEffect(() => {
+    window.__tutorialAbierto = tour;
+    if (tour) window.dispatchEvent(new CustomEvent('secciones', { detail: { abrir: true } }));
+  }, [tour]);
   const [avisosAbierto, setAvisosAbierto] = useState(false);
   const [sugerirAvisos, setSugerirAvisos] = useState(false);
   const recibe = RECIBE_AVISOS(perfil.rol);

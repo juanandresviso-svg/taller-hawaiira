@@ -14,8 +14,16 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Inicia sesión.' }, { status: 401 });
   // Después de responder: registra los pasos cumplidos del flujo y guarda los documentos en Google Drive
+  // Sigue por tandas hasta que no quede nada pendiente (o se acabe el tiempo): los documentos llegan a Drive de inmediato
   after(async () => {
-    try { await seguimiento(createAdminClient(), { actor: user.id, limite: 5 }); } catch (e) { console.error('seguimiento', e.message); }
+    const t0 = Date.now();
+    try {
+      for (let i = 0; i < 6 && Date.now() - t0 < 40000; i++) {
+        const r = await seguimiento(createAdminClient(), { actor: user.id, limite: 6 });
+        const d = r && r.drive;
+        if (!d || !d.conectado || !(d.pendientes > 0 || d.organizados > 0)) break;
+      }
+    } catch (e) { console.error('seguimiento', e.message); }
   });
   try {
     const r = await revisarYAvisar(createAdminClient(), { actor: user.id });

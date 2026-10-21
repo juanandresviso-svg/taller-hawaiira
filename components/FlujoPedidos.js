@@ -1,4 +1,5 @@
 'use client';
+import Seccion from './Seccion';
 import { FASES, TOTAL_PASOS, pasosDe, cotizacionDe, puedeMarcar } from '@/lib/proceso';
 import { fd, parseDay } from '@/lib/motor';
 
@@ -26,8 +27,7 @@ export default function FlujoPedidos({ M, perfil, ordenes, hitos = [], cotizacio
   tareas.forEach((t) => { const g = esDir ? t.p.cargo : 'mias'; (grupos[g] = grupos[g] || []).push(t); });
 
   return (
-    <>
-      <h2>Flujo de pedidos</h2>
+    <Seccion id="tablero:flujo" titulo="Flujo de pedidos" resumen={`${tareas.length} paso${tareas.length === 1 ? '' : 's'} pendiente${tareas.length === 1 ? '' : 's'}`}>
       <div className="summary" data-tour="flujo">
         {FASES.map((f, i) => (
           <div key={f}><span className="k">{i + 1} · {f}</span><span className="v">{porFase[i]}</span></div>
@@ -48,6 +48,6 @@ export default function FlujoPedidos({ M, perfil, ordenes, hitos = [], cotizacio
           </div>
         )) : <p className="small muted" style={{ margin: '6px 0 0' }}>No hay pasos pendientes{esDir ? '' : ' para tu cargo'}. Se marcan en Pedidos → Seguimiento.</p>}
       </div>
-    </>
+    </Seccion>
   );
 }

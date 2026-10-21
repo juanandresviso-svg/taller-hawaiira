@@ -1,4 +1,5 @@
 'use client';
+import Seccion, { TodoSecciones } from './Seccion';
 import { useState } from 'react';
 import { cfgBase, estimarProducto, ETAPAS_PROD } from '@/lib/aprendizaje';
 import { nf, nf1 } from '@/lib/motor';
@@ -55,7 +56,8 @@ export default function Ajustes({ supabase, perfil, config, A, avisar }) {
 
   return (
     <>
-      <h2>Capacidad y jornada</h2>
+      <TodoSecciones grupo="ajustes" />
+      <Seccion id="ajustes:capacidad" titulo="Capacidad y jornada" resumen={`${c.horasDia} h/día · ${c.eficiencia}%${c.sabado ? ' · con sábados' : ''}`}>
       <div className="panel" data-tour="capacidad">
         <div className="fgrid">
           <label className="f">Horas por día<input id="c-h" type="number" step="0.5" value={c.horasDia} onChange={(e) => set('horasDia', e.target.value)} /></label>
@@ -74,14 +76,16 @@ export default function Ajustes({ supabase, perfil, config, A, avisar }) {
         <button className="btn primary" onClick={guardar} disabled={busy}>{busy ? 'Guardando…' : 'Guardar ajustes'}</button>
         <button className="btn" onClick={() => setC({ ...structuredClone(cfgBase(config)), equipos: structuredClone(equiposDe(config)) })}>Descartar cambios</button>
       </div>
+      </Seccion>
 
-      <h2>Equipos y máquinas</h2>
+      <Seccion id="ajustes:equipos" titulo="Equipos y máquinas" resumen={`${(c.equipos || []).length} registrado${(c.equipos || []).length === 1 ? '' : 's'}`}>
       <Equipos equipos={c.equipos || []} productos={c.productos} onChange={(v) => setC((x) => ({ ...x, equipos: v }))} />
       <div className="formacts">
         <button className="btn primary" onClick={guardar} disabled={busy}>{busy ? 'Guardando…' : 'Guardar equipos'}</button>
       </div>
+      </Seccion>
 
-      <h2>Tiempos de producción (resultado)</h2>
+      <Seccion id="ajustes:tiempos" titulo="Tiempos de producción (resultado)" resumen={`${Object.keys(c.productos).length} productos · ${A.entregados} pedidos medidos`}>
       <div className="panel scroll tt" data-tour="tiempos">
         <p className="small muted" style={{ marginTop: 0 }}>
           Estos tiempos no se escriben: salen de los pedidos entregados. Cada vez que un pedido se marca como entregado, sus minutos reales por pieza entran al promedio (los últimos 6 pedidos de cada producto, sin las mediciones extremas). Mientras un producto no tenga pedidos entregados, la app usa un estimado. Pedidos entregados con tiempos medidos: <b>{A.entregados}</b>.
@@ -117,22 +121,21 @@ export default function Ajustes({ supabase, perfil, config, A, avisar }) {
         </div>
         <p className="small muted" style={{ marginBottom: 0 }}>Para que el resultado sea fiel, el equipo debe registrar cada paquete apenas lo termina (o usar Empezar). El detalle de cada pedido está en su Informe de producción.</p>
       </div>
+      </Seccion>
 
       {perfil && ['direccion', 'jefa'].includes(perfil.rol) && (
-        <>
-          <h2>Google Drive</h2>
+        <Seccion id="ajustes:drive" titulo="Google Drive">
           <DrivePanel perfil={perfil} avisar={avisar} />
-        </>
+        </Seccion>
       )}
 
       {perfil && perfil.rol === 'direccion' && (
-        <>
-          <h2>Notificaciones push</h2>
+        <Seccion id="ajustes:claves" titulo="Notificaciones push">
           <div className="panel" data-tour="claves">
             <p className="small muted" style={{ marginTop: 0 }}>Para que las notificaciones lleguen aunque la app esté cerrada, el servidor necesita un par de claves propias del taller. Se configuran una sola vez (instructivo, paso 4.5).</p>
             <GenerarClaves />
           </div>
-        </>
+        </Seccion>
       )}
     </>
   );

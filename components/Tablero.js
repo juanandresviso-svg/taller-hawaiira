@@ -1,4 +1,5 @@
 'use client';
+import Seccion, { TodoSecciones } from './Seccion';
 import { useState } from 'react';
 import { POOLS, POOL_NAME, ROLES_ALERTA, nf, nf1, pct, isoDay, mondayOf } from '@/lib/motor';
 import FlujoPedidos from './FlujoPedidos';
@@ -29,7 +30,8 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
 
   return (
     <>
-      <h2>Resumen</h2>
+      <TodoSecciones grupo="tablero" />
+      <Seccion id="tablero:resumen" titulo="Resumen" resumen={`${act.length} activos · ${cnt.rojo} en riesgo · ${cnt.listo} listos`}>
       <div className="summary" data-tour="resumen">
         <div><span className="k">Pedidos activos</span><span className="v">{act.length}</span></div>
         <div><span className="k">Entrega en riesgo</span><span className={'v ' + (cnt.rojo ? 'bad' : '')}>{cnt.rojo}</span></div>
@@ -38,11 +40,12 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
         <div><span className="k">Listos para despachar</span><span className={'v ' + (cnt.listo ? 'info' : '')}>{cnt.listo}</span></div>
         <div><span className="k">Estación más cargada (2 sem.)</span><span className={'v ' + (bn && bn.u > 1 ? 'bad' : bn && bn.u > 0.85 ? 'warn' : 'ok')}>{bn ? pct(bn.u) : '—'} <small>{bn ? POOL_NAME[bn.p] : ''}</small></span></div>
       </div>
+      </Seccion>
 
       <FlujoPedidos M={M} perfil={perfil} ordenes={ordenes} hitos={hitos} cotizaciones={cotizaciones} veCostos={veCostos} />
 
       {espera.length > 0 && <div className="banner warn">{espera.length === 1 ? '1 pedido espera' : espera.length + ' pedidos esperan'} que se envíe su orden de producción para entrar en el plan: {espera.map((o) => o.codigo + ' · ' + o.cliente).join(', ')}. Envíala en Pedidos → Por enviar OP.</div>}
-      <h2>Alertas</h2>
+      <Seccion id="tablero:alertas" titulo="Alertas" resumen={`${M.alerts.length} · ${M.alerts.filter((a) => a.sev === 'rojo').length} en rojo`}>
       <div data-tour="alertas"><div className="chips" role="group" aria-label="Filtrar por responsable">
         <button className="chip" aria-pressed={rol === 'todas'} onClick={() => setRol('todas')}>Todas ({M.alerts.length})</button>
         <button className="chip" aria-pressed={rol === 'mias'} onClick={() => setRol('mias')}>Mis pedidos ({mias})</button>
@@ -60,10 +63,11 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
         </div>
       ) : <div className="empty">Sin alertas para este filtro.</div>}
       </div>
+      </Seccion>
 
       <div className="grid2">
         <div>
-          <h2>Carga por estación</h2>
+          <Seccion id="tablero:carga" titulo="Carga por estación" resumen={bn ? `máx. ${pct(bn.u)} ${POOL_NAME[bn.p]}` : ''}>
           <div className="panel" data-tour="carga"><div className="load">
             {POOLS.filter((p) => M.personas(p) > 0 || M.util[p].total > 0).map((p, i) => {
               const u = M.util[p], v = u.w10.u, cls = v > 1 ? 'bad' : v > 0.85 ? 'warn' : 'ok', n = M.personas(p);
@@ -74,9 +78,10 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
           </div>
             <div className="legend">Barra: carga de las próximas 2 semanas frente a la capacidad ({M.cfg.horasDia} h/día, {M.cfg.eficiencia}% de eficiencia{M.cfg.sabado ? ', con sábados' : ''}). Las marcas indican 85% y 100%.</div>
           </div>
+          </Seccion>
         </div>
         <div>
-          <h2>Recomendaciones</h2>
+          <Seccion id="tablero:recomendaciones" titulo="Recomendaciones" resumen={M.recs.length ? `${M.recs.length}` : 'ninguna'}>
           <div className="list" data-tour="recomendaciones">
             {M.recs.length ? M.recs.map((r, i) => (
               <div key={i} className={'rec ' + r.nivel}>
@@ -87,10 +92,11 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
             )) : <div className="empty">Todas las estaciones están bajo 85% de carga. Hay espacio para aceptar pedidos.</div>}
           </div>
           <p className="small faint">Las recomendaciones de expansión se activan cuando una estación supera el 90% en 4 de las últimas 8 semanas. Semanas en el historial: {M.semanasHistorial}.</p>
+          </Seccion>
         </div>
       </div>
 
-      <h2>Producción de la semana por persona</h2>
+      <Seccion id="tablero:produccion" titulo="Producción de la semana por persona" resumen={filas.length ? `${filas.length} persona${filas.length > 1 ? 's' : ''} · ${nf.format(filas.reduce((a, [, v]) => a + v.pz, 0))} piezas` : 'sin registros'}>
       {filas.length ? (
         <div className="panel scroll">
           <table>
@@ -104,6 +110,7 @@ export default function Tablero({ M, perfil, registros, perfiles, ordenes, hitos
           </table>
         </div>
       ) : <div className="empty">Aún no hay registros de producción esta semana.</div>}
+      </Seccion>
     </>
   );
 }

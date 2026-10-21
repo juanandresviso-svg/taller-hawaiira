@@ -270,15 +270,18 @@ Con esto, en cada paso importante del pedido la app guarda el documento en Googl
 ```
 Taller Hawaiira · Documentos/
 ├── Seguimiento de pedidos      ← hoja: "Estado de pedidos" (una fila por pedido) y "Bitácora" (una fila por paso cumplido)
-├── Cotizaciones/               ← cada cotización enviada, en PDF
-└── Pedidos/
-    └── OP-0012 · Cliente/
-        ├── 01 Cotización COT-0007.pdf        (al aprobar la cotización)
-        ├── 02 Orden de compra del cliente     (copia de la OC que se subió)
-        ├── 03 Orden de producción OP-0012.pdf (al enviar la orden de producción)
-        ├── 04 Nota de entrega OP-0012.pdf     (al terminar el empaque o al marcar entregado)
-        └── 05 Informe de cierre OP-0012.pdf   (al marcar "Saldo cobrado")
+└── Clientes/
+    └── DARKSIDE/                              ← una carpeta por cliente
+        ├── Cotizaciones/                      ← cada cotización enviada, en PDF
+        └── OP-0012 · Franela × 35/            ← una carpeta por pedido
+            ├── 01 Cotización 280.pdf          (al aprobar la cotización)
+            ├── 02 Orden de compra del cliente (copia de la OC que se subió)
+            ├── 03 Orden de producción OP-0012.pdf (al enviar la orden de producción)
+            ├── 04 Nota de entrega 115 DARKSIDE.pdf (al marcar entregado)
+            └── 05 Informe de cierre OP-0012.pdf (al marcar "Saldo cobrado")
 ```
+
+Los documentos se suben **de inmediato**: apenas se cumple el paso (cotización enviada, OP enviada, pedido entregado…), la app los genera y los guarda en la carpeta del cliente en segundos. Lo que se había guardado antes en las carpetas viejas *Pedidos* y *Cotizaciones* se mueve solo a la carpeta de su cliente; esas carpetas viejas quedan vacías y se pueden borrar.
 
 Se usa el **Gmail del taller** (paso 1). La app pide el permiso más limitado de Google (`drive.file`): solo puede ver y modificar las carpetas y archivos que ella misma crea, nunca el resto del Drive.
 

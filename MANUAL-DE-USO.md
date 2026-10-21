@@ -228,7 +228,7 @@ Cada pedido dice en qué **paso del flujograma** va (por ejemplo *paso 14 de 31*
 
 ### Documentos en Google Drive
 
-Con Google Drive conectado, la app guarda sola en **Taller Hawaiira · Documentos → Pedidos → OP-xxxx · Cliente**: 01 Cotización, 02 Orden de compra, 03 Orden de producción (con el equipo sugerido), 04 Nota de entrega y 05 Informe de cierre. La hoja **Seguimiento de pedidos** tiene el estado de cada pedido (con su paso del flujograma) y la bitácora de los 31 pasos.
+Con Google Drive conectado, la app guarda sola y de inmediato, organizado por cliente, en **Taller Hawaiira · Documentos → Clientes → CLIENTE**: la carpeta **Cotizaciones** con cada cotización enviada, y una carpeta por pedido (**OP-xxxx · Producto × cantidad**) con 01 Cotización, 02 Orden de compra, 03 Orden de producción (con el equipo sugerido), 04 Nota de entrega y 05 Informe de cierre. La hoja **Seguimiento de pedidos** tiene el estado de cada pedido (con su paso del flujograma) y la bitácora de los 31 pasos.
 
 ## Clientes (dirección, jefe de taller y administración)
 
