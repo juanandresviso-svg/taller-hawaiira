@@ -4,6 +4,7 @@ import { DECO_NAME, fd, parseDay, nf } from '@/lib/motor';
 import { usd } from '@/lib/costos';
 import { decoTexto } from './ui';
 import { revisarNovedades } from '@/lib/avisos';
+import NuevoProducto from './NuevoProducto';
 
 // Solicitudes de cotización: Ventas registra lo que pide el cliente y Administración o Dirección lo cotiza.
 export const SOLICITUD_ROLES = ['direccion', 'jefa', 'admin', 'ventas'];
@@ -28,6 +29,7 @@ export default function Solicitudes({ supabase, perfil, M, perfiles = [], client
   const [draft, setDraft] = useState(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [nuevoProd, setNuevoProd] = useState(null); // línea en la que se está creando un producto nuevo
   const [vista, setVista] = useState('abiertas');
   const [mias, setMias] = useState(perfil.rol === 'ventas');
   const [q, setQ] = useState('');
@@ -132,7 +134,7 @@ export default function Solicitudes({ supabase, perfil, M, perfiles = [], client
             {draft.items.map((it, i) => (
               <div key={i} className="subcard">
                 <div className="fgrid">
-                  <label className="f">Producto<select value={it.producto} onChange={(e) => set((d) => { d.items[i].producto = e.target.value; })}>{Object.entries(productos).map(([k2, p]) => <option key={k2} value={k2}>{p.nombre}</option>)}</select></label>
+                  <label className="f">Producto<select value={it.producto} onChange={(e) => { if (e.target.value === '__nuevo') setNuevoProd(i); else set((d) => { d.items[i].producto = e.target.value; }); }}>{Object.entries(productos).map(([k2, p]) => <option key={k2} value={k2}>{p.nombre}</option>)}<option value="__nuevo">+ Agregar producto nuevo…</option></select></label>
                   <label className="f">Cantidad aproximada<input type="number" min="0" value={it.cantidad} onChange={(e) => set((d) => { d.items[i].cantidad = e.target.value; })} /></label>
                   <label className="f">Tallas (si las sabe)<input value={it.tallas} placeholder="Ej. S 20, M 40, L 40" onChange={(e) => set((d) => { d.items[i].tallas = e.target.value; })} /></label>
                   <label className="f">Estampado<select value={it.deco.tipo} onChange={(e) => set((d) => { d.items[i].deco.tipo = e.target.value; })}>{Object.entries(DECO_NAME).map(([k2, v]) => <option key={k2} value={k2}>{v}</option>)}</select></label>
@@ -140,6 +142,7 @@ export default function Solicitudes({ supabase, perfil, M, perfiles = [], client
                   {it.deco.tipo === 'serigrafia' && <label className="f">Colores<input type="number" min="1" max="8" value={it.deco.colores} onChange={(e) => set((d) => { d.items[i].deco.colores = Math.max(1, +e.target.value || 1); })} /></label>}
                   <label className="f" style={{ gridColumn: '1 / -1' }}>Descripción<input value={it.descripcion} placeholder="Color, tela, logo, detalles" onChange={(e) => set((d) => { d.items[i].descripcion = e.target.value; })} /></label>
                 </div>
+                {nuevoProd === i && <div style={{ marginTop: 10 }}><NuevoProducto supabase={supabase} cfg={M.cfg} onCancel={() => setNuevoProd(null)} onCreado={async (clave, nombre) => { if (recargar.config) await recargar.config(); set((d) => { d.items[i].producto = clave; }); setNuevoProd(null); avisar(`Producto "${nombre}" creado. Queda disponible para todos.`); }} /></div>}
                 {draft.items.length > 1 && <button type="button" className="btn sm link" onClick={() => set((d) => { d.items.splice(i, 1); })}>Quitar producto</button>}
               </div>
             ))}

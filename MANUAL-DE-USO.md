@@ -134,7 +134,9 @@ Un pedido solo entra en el plan del taller cuando se **envía su orden de produc
 
 - **Arte aprobado / Material listo / Anticipo:** tócalos para marcarlos (✓) o desmarcarlos (○). Cada área marca lo suyo.
 - **Editar:** cambia cantidades, fechas o datos del pedido.
-- **Marcar entregado:** cuando el cliente recibió todo. El pedido pasa a *Entregados*. Si te equivocaste, ahí mismo puedes pulsar **Reactivar**.
+- **Marcar entregado:** al despachar. Se abre un recuadro: marca los otros pedidos del mismo cliente que salen en ese despacho, revisa las **Observaciones** (por defecto *POR PAGAR*) y pulsa **Despachar y generar nota**. Se abre la **nota de entrega** numerada (115, 116…) con el formato de Hawaiira Studio: **Descargar PDF**, imprímela y que el cliente firme al recibir. Todos los pedidos de ese despacho comparten la nota. La nota también se guarda en la carpeta del pedido en Google Drive.
+- **Nota de entrega N:** en los pedidos entregados, vuelve a abrir la nota. Si un pedido se entregó antes de esta función, pulsa **Generar nota de entrega**.
+- Si te equivocaste al entregar, ahí mismo puedes pulsar **Reactivar**.
 - **Eliminar:** solo dirección.
 
 ---

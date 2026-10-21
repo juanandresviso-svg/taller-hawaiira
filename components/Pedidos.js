@@ -14,6 +14,7 @@ import { isoDay } from '@/lib/motor';
 import { revisarNovedades } from '@/lib/avisos';
 import { pasosDe, cotizacionDe } from '@/lib/proceso';
 import Seguimiento from './Seguimiento';
+import EntregarPedido from './EntregarPedido';
 
 const EDITAN = ['direccion', 'jefa', 'admin', 'compras', 'diseno'];
 
@@ -32,6 +33,7 @@ export default function Pedidos({ supabase, perfil, M, K, ordenes, perfiles, mat
   const [importando, setImportando] = useState(false);
   const [nuevoProd, setNuevoProd] = useState(false);
   const [salida, setSalida] = useState(null);
+  const [entregando, setEntregando] = useState(null); // pedido que se está despachando con nota de entrega
   const [desdeOC, setDesdeOC] = useState(false);   // nuevo pedido a partir de la orden de compra
   const [ocPre, setOcPre] = useState(null);         // OC ya leída para el pedido nuevo
   const [enviando, setEnviando] = useState(null);   // { id, reenviar }: panel de enviar la orden de producción
@@ -264,7 +266,10 @@ export default function Pedidos({ supabase, perfil, M, K, ordenes, perfiles, mat
                       ) : (
                         <>
                           {!ent && <button className="btn sm" onClick={() => { setErr(''); setOcFile(null); setDraft(structuredClone(o)); window.scrollTo(0, 0); }}>Editar</button>}
-                          {!ent && !esp && <button className="btn sm" onClick={() => setConfirm({ id: o.id, a: 'entregar' })}>Marcar entregado</button>}
+                          {!ent && !esp && <button className="btn sm" onClick={() => setEntregando(entregando === o.id ? null : o.id)}>Marcar entregado</button>}
+                          {ent && (o.notaEntrega
+                            ? <a className="btn sm" href={'/entrega/' + o.notaEntrega} target="_blank" rel="noreferrer">Nota de entrega {o.notaEntrega}</a>
+                            : <button className="btn sm" onClick={() => setEntregando(entregando === o.id ? null : o.id)}>Generar nota de entrega</button>)}
                           {ent && <button className="btn sm" onClick={() => run(() => supabase.from('ordenes').update({ estado: 'activo', entregado: null }).eq('id', o.id), 'Pedido reactivado.')}>Reactivar</button>}
                           {!esp && <a className="btn sm" href={'/informe/' + o.id} target="_blank" rel="noreferrer">Informe</a>}
                           {veMateriales && !ent && <button className="btn sm" onClick={() => setSalida(salida === o.id ? null : o.id)}>Materiales</button>}
@@ -275,6 +280,7 @@ export default function Pedidos({ supabase, perfil, M, K, ordenes, perfiles, mat
                   )}
                 </div>
                 <Seguimiento o={o} S={SEG[o.id]} supabase={supabase} perfil={perfil} docs={docsDe[o.id] || []} nombreDe={(id) => (perfiles.find((p) => p.id === id) || {}).nombre || ''} avisar={avisar} busy={busy} setBusy={setBusy} tour={idx === 0} ctx={ctxEquipo} onEnviarOP={puede && (o.cotizacionId || perfil.rol === 'direccion' || o.estado !== 'espera') ? (reenviar) => setEnviando({ id: o.id, reenviar }) : null} />
+                {entregando === o.id && <EntregarPedido o={o} ordenes={ordenes} M={M} supabase={supabase} avisar={avisar} recargar={recargar} onClose={() => setEntregando(null)} />}
                 {salida === o.id && <Salida supabase={supabase} orden={o} materiales={materiales} consumos={consumos} avisar={avisar} onClose={() => setSalida(null)} recargar={recargar} puedeBorrar={['direccion', 'jefa', 'admin'].includes(perfil.rol)} />}
               </article>
             );

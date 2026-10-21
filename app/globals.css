@@ -412,3 +412,23 @@ table tfoot th.r { text-align: right; }
 .sol-opcion { text-align: left; font: 14px var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
 .sol-opcion:hover { border-color: var(--ink); }
 .op.sol .flags { margin-top: 10px; }
+
+/* Nota de entrega (formato de Word de Hawaiira Studio) */
+.ne { font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
+.ne .cf-datos th { text-align: left; padding: 3px 18px 3px 0; min-width: 0; font-size: 13px; }
+.ne .cf-datos td { padding: 3px 0; font-size: 13px; }
+.ne-items { width: 100%; border-collapse: collapse; margin: 34px 0 40px; }
+.ne-items td { border: 1px solid #111 !important; height: 72px; vertical-align: middle; font-size: 13px; color: #111; }
+.ne-items td.cod { width: 9%; font-weight: 700; text-align: center; }
+.ne-items td.desc { text-align: center; padding: 6px 12px; }
+.ne-items td.cant { width: 14%; text-align: center; }
+.ne-firma { width: 96%; border-collapse: collapse; font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif; }
+.ne-firma th, .ne-firma td { border: 1px solid #111 !important; background: #f0f0f0; width: 50%; text-align: center; color: #111; }
+.ne-firma th { font-size: 15px; font-weight: 700; padding: 8px 40px; height: 64px; text-transform: none; letter-spacing: 0; }
+.ne-firma td { height: 86px; vertical-align: middle; }
+.ne-firma td.obs { font-weight: 700; font-size: 12.5px; }
+.ne-gracias { font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 26px 0 0; }
+.ne-sello { display: flex; justify-content: flex-end; padding: 160px 140px 40px 0; }
+.ne-sello img { width: 290px; }
+@media (max-width: 640px) { .ne-sello { padding: 60px 0 20px; justify-content: center; } .ne-sello img { width: 220px; } .ne-firma th { padding: 6px; } }
+@media print { .ne-firma th, .ne-firma td { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
