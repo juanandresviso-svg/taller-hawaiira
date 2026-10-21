@@ -305,7 +305,7 @@ Para dirección, jefe(a) de taller, administración, compras y diseño.
 | **Dirección** | Todo lo anterior, más invitar y desactivar personas en **Usuarios**, revisar recomendaciones, eliminar pedidos y conectar **Google Drive** en Ajustes. |
 | **Dueño de cada pedido** | Mantener al cliente informado y renegociar la fecha si el pedido pasa a rojo. |
 
-### Solo para jefe(a) de taller y dirección: Ajustes
+### Para dirección, jefe(a) de taller y administración: Ajustes
 
 - **Horas por día, eficiencia y sábados:** definen cuánta capacidad tiene el taller.
 - **Tiempos de producción:** no se escriben. Son el resultado de los pedidos entregados; aquí se ven con su origen (promedio real o estimado).

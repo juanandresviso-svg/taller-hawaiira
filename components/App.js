@@ -44,7 +44,7 @@ function tabsPara(rol) {
   if (rol === 'operador') return ['taller'];
   if (rol === 'direccion') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes', 'usuarios'];
   if (rol === 'jefa') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes'];
-  if (rol === 'admin') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos'];
+  if (rol === 'admin') return ['tablero', 'solicitudes', 'pedidos', 'clientes', 'taller', 'costos', 'ajustes'];
   if (rol === 'ventas') return ['solicitudes', 'tablero', 'pedidos', 'clientes'];
   if (rol === 'compras') return ['tablero', 'pedidos', 'taller', 'materiales'];
   return ['tablero', 'pedidos', 'taller'];

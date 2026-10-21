@@ -101,6 +101,7 @@ Guarda:
 12. Repite los pasos 1 a 4 con `supabase/migracion-09-costos-pedido.sql` (costos adicionales de cada pedido y corrección de salidas de material).
 13. Repite los pasos 1 a 4 con `supabase/migracion-10-lista-precios.sql` (Materiales como lista de precios: el stock solo se lleva en los materiales marcados "en almacén" y se guarda el precio pagado en cada pedido).
 14. Repite los pasos 1 a 4 con `supabase/migracion-11-solicitudes-ventas.sql` (cargo **Ventas** y pestaña **Solicitudes**: la solicitud del cliente antes de la cotización). Después invita a las personas de ventas en **Usuarios** con el rol *Ventas*.
+15. Repite los pasos 1 a 4 con `supabase/migracion-12-admin-ajustes.sql` (Administración puede editar Ajustes y productos).
 
 > Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 
