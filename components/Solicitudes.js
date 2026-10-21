@@ -34,10 +34,27 @@ export default function Solicitudes({ supabase, perfil, M, perfiles = [], client
   const [mias, setMias] = useState(perfil.rol === 'ventas');
   const [q, setQ] = useState('');
   const [descartar, setDescartar] = useState(null); // { id, motivo }
+  const [aprobando, setAprobando] = useState(null);   // { id (cotización), fecha, rechazar }
+  const responde = COTIZAN.includes(perfil.rol) || perfil.rol === 'ventas'; // marcan la respuesta del cliente a la cotización
   const cotiza = COTIZAN.includes(perfil.rol);
   const nombre = (id) => (perfiles.find((p) => p.id === id) || {}).nombre || '';
   const cotDe = (s) => cotizaciones.find((c) => c.id === s.cotizacion_id) || cotizaciones.find((c) => c.solicitud_id === s.id) || null;
   const set = (fn) => setDraft((d) => { const n = structuredClone(d); fn(n); return n; });
+
+  // Respuesta del cliente: aprobar (crea los pedidos) o rechazar la cotización
+  async function responder(c) {
+    if (!aprobando.rechazar && !aprobando.fecha && !(c.ordenes || []).length) return avisar('Indica la fecha de entrega comprometida con el cliente.');
+    setBusy(true);
+    const { data, error } = aprobando.rechazar
+      ? await supabase.rpc('rechazar_cotizacion', { p_id: c.id })
+      : await supabase.rpc('aprobar_cotizacion', { p_id: c.id, p_fecha: aprobando.fecha || null });
+    setBusy(false);
+    if (error) return avisar((/function|aprobar_cotizacion|rechazar_cotizacion/.test(error.message) ? 'Falta correr la migración 14 en Supabase. ' : 'No se pudo guardar: ') + error.message);
+    setAprobando(null);
+    const cods = Array.isArray(data) ? data : [];
+    avisar(aprobando.rechazar ? `Cotización ${c.numero} marcada como rechazada.` : `Cotización ${c.numero} aprobada${cods.length ? ': pedidos ' + cods.join(', ') + '. Envía la orden de producción desde Pedidos → "Por enviar OP".' : '.'}`);
+    recargar.cotizaciones && recargar.cotizaciones(); recargar.ordenes && recargar.ordenes(); recargar.solicitudes && recargar.solicitudes(); revisarNovedades();
+  }
 
   function nueva() {
     setErr('');
@@ -190,6 +207,37 @@ export default function Solicitudes({ supabase, perfil, M, perfiles = [], client
                   <div className="sol-cot small">
                     Cotización <b>{c.numero}</b> · {usd.format(+c.total || 0)} · {c.estado}{(c.ordenes || []).length ? <> · Pedidos: <b>{c.ordenes.join(', ')}</b></> : ''}
                     <a className="btn sm" href={'/cotizacion/' + c.id} target="_blank" rel="noreferrer">Ver cotización</a>
+                    {responde && ['borrador', 'enviada'].includes(c.estado) && !(aprobando && aprobando.id === c.id) && <>
+                      <button className="btn sm primary" onClick={() => setAprobando({ id: c.id, fecha: c.fecha_entrega || s.fecha_deseada || '', rechazar: false })}>Aprobar cotización</button>
+                      <button className="btn sm" onClick={() => setAprobando({ id: c.id, rechazar: true })}>Rechazada</button>
+                    </>}
+                  </div>
+                )}
+                {c && aprobando && aprobando.id === c.id && (
+                  <div className="subcard" style={{ marginTop: 8 }}>
+                    {aprobando.rechazar ? (
+                      <span className="formacts" style={{ margin: 0 }}>
+                        <span className="small">¿El cliente rechazó la cotización {c.numero}?</span>
+                        <button className="btn sm danger" disabled={busy} onClick={() => responder(c)}>Sí, rechazada</button>
+                        <button className="btn sm" onClick={() => setAprobando(null)}>Cancelar</button>
+                      </span>
+                    ) : (c.ordenes || []).length ? (
+                      <span className="formacts" style={{ margin: 0 }}>
+                        <span className="small">El cliente aprobó la cotización {c.numero} (pedido {c.ordenes.join(', ')}).</span>
+                        <button className="btn sm primary" disabled={busy} onClick={() => responder(c)}>Confirmar aprobación</button>
+                        <button className="btn sm" onClick={() => setAprobando(null)}>Cancelar</button>
+                      </span>
+                    ) : (
+                      <>
+                        <b className="small">El cliente aprobó la cotización {c.numero}</b>
+                        <div className="formacts" style={{ marginTop: 6 }}>
+                          <label className="small muted">Entrega comprometida <input type="date" value={aprobando.fecha} onChange={(e) => setAprobando({ ...aprobando, fecha: e.target.value })} style={{ width: 'auto', display: 'inline-block' }} /></label>
+                          <button className="btn sm primary" disabled={busy} onClick={() => responder(c)}>{busy ? 'Creando…' : 'Aprobar y crear pedidos'}</button>
+                          <button className="btn sm" onClick={() => setAprobando(null)}>Cancelar</button>
+                        </div>
+                        <p className="small muted" style={{ margin: 0 }}>Se crea un pedido por cada producto de la cotización. La orden de compra del cliente se adjunta después, al enviar la orden de producción desde Pedidos.</p>
+                      </>
+                    )}
                   </div>
                 )}
                 <div className="flags">

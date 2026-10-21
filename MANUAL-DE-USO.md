@@ -174,6 +174,8 @@ Toda cotización empieza con una **solicitud**: lo que pide el cliente, registra
 4. Cuando el cliente aprueba o rechaza la cotización, la solicitud cambia sola a *Aprobada* (con sus pedidos) o *Rechazada*.
 5. Si el cliente desiste antes de cotizar, **Descartar** con el motivo. Se puede **Reabrir**.
 
+**Respuesta del cliente:** cuando la cotización ya está hecha, en la tarjeta de la solicitud aparecen **Aprobar cotización** y **Rechazada**. Los pueden usar Ventas, Administración, el jefe de taller y Dirección. Al aprobar, escribe la fecha de entrega comprometida y pulsa **Aprobar y crear pedidos**: se crea un pedido por cada producto, a nombre de quien vendió, y queda en **Pedidos → Por enviar OP**. La solicitud pasa a *Aprobada*.
+
 En **Costos → Cotizaciones**, **Cotizar una solicitud** muestra las que están pendientes. Solo **Dirección** puede hacer una **Cotización sin solicitud**. Arriba de Solicitudes se ven las que están por cotizar, las que esperan al cliente, el tiempo promedio para cotizar y la tasa de cierre. Ventas ve el total y el estado de la cotización, pero no los costos.
 
 ## Del pedido a la orden de producción

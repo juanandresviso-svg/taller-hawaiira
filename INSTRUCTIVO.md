@@ -103,6 +103,7 @@ Guarda:
 14. Repite los pasos 1 a 4 con `supabase/migracion-11-solicitudes-ventas.sql` (cargo **Ventas** y pestaña **Solicitudes**: la solicitud del cliente antes de la cotización). Después invita a las personas de ventas en **Usuarios** con el rol *Ventas*.
 15. Repite los pasos 1 a 4 con `supabase/migracion-12-admin-ajustes.sql` (Administración puede editar Ajustes y productos).
 16. Repite los pasos 1 a 4 con `supabase/migracion-13-nota-entrega.sql` (nota de entrega numerada al despachar, desde la 115; y Ventas puede agregar productos desde Solicitudes). Para cambiar el próximo número de nota corre, por ejemplo, `select setval('public.nota_entrega_seq', 199);` (la siguiente será la 200).
+17. Repite los pasos 1 a 4 con `supabase/migracion-14-aprobar-en-solicitudes.sql` (aprobar o rechazar la cotización desde Solicitudes, también Ventas).
 
 > Todas las migraciones se pueden volver a correr sin dañar nada. Si tienes dudas de cuál corriste, córrelas otra vez en orden.
 
